@@ -1,14 +1,29 @@
 // src/app/api/health/route.ts
 import { NextResponse } from 'next/server';
 
+interface HealthStatus {
+    status: string;
+    timestamp: string;
+    uptime: number;
+    memory: NodeJS.MemoryUsage;
+    node_version: string;
+    env: string;
+    externalApi?: {
+        status: string;
+        latency?: string;
+        statusCode?: number;
+        message?: string;
+    };
+}
+
 export async function GET() {
-    const health = {
+    const health: HealthStatus = {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         memory: process.memoryUsage(),
         node_version: process.version,
-        env: process.env.NODE_ENV,
+        env: process.env.NODE_ENV || 'development',
     };
 
     // Check external API health
@@ -23,13 +38,13 @@ export async function GET() {
         });
         const duration = Date.now() - start;
 
-        (health as any).externalApi = {
+        health.externalApi = {
             status: response.ok ? 'connected' : 'unavailable',
             latency: `${duration}ms`,
             statusCode: response.status,
         };
     } catch (error) {
-        (health as any).externalApi = {
+        health.externalApi = {
             status: 'error',
             message: error instanceof Error ? error.message : 'Unknown error',
         };

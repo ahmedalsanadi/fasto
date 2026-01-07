@@ -1,13 +1,13 @@
 import React from 'react';
-import ProductsContent from '@/components/pages/products/ProductsContent';
-import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import ProductsContent from '@/components/pages/products/products-content';
+import Breadcrumbs from '@/components/ui/breadcrumbs';
 
 import { getTranslations } from 'next-intl/server';
 import { Metadata } from 'next';
 import { siteConfig } from '@/config/site';
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
-import { getQueryClient } from '@/lib/getQueryClient';
-import { storeService } from '@/lib/api/services';
+import { getQueryClient } from '@/lib/get-query-client';
+import { storeService } from '@/services/store-service';
 
 export async function generateMetadata({
     params,
@@ -29,7 +29,7 @@ export async function generateMetadata({
             if (cat) {
                 title = `${cat.title} | ${siteConfig.name}`;
             }
-        } catch (e) {
+        } catch {
             // Silently fall back to default title
         }
     }

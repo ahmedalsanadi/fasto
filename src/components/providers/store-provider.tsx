@@ -6,9 +6,9 @@ import React, {
     useLayoutEffect,
     useEffect,
 } from 'react';
-import { StoreConfig } from '@/lib/api/types';
-import { useCartStore } from '@/store/useCartStore';
-import { isValidColor } from '@/lib/api/utils';
+import { StoreConfig } from '@/services/types';
+import { useCartStore } from '@/store/use-cart-store';
+import { isValidColor } from '@/lib/utils';
 
 interface StoreContextType {
     config: StoreConfig;

@@ -1,0 +1,155 @@
+{
+    "Index": {
+        "boilerplateName": "Fasto Template",
+        "title": "Welcome to Fasto"
+    },
+    "Metadata": {
+        "title": "Fasto - Your Favorite Restaurant",
+        "homeTitle": "Home",
+        "description": "Fasto is a modern restaurant landing page template.",
+        "keywords": "Next.js, i18n, restaurant, Fasto"
+    },
+    "Navbar": {
+        "searchPlaceholder": "Search for anything ...",
+        "nav": {
+            "home": "Home",
+            "categories": "Categories",
+            "branches": "Branches",
+            "offers": "Offers",
+            "my-orders": "My Orders"
+        }
+    },
+    "UserMenu": {
+        "username": "Fahd Abdullah",
+        "profile": "Profile",
+        "myOrders": "My Orders",
+        "wallet": "Wallet",
+        "logout": "Logout"
+    },
+    "Notifications": {
+        "empty": "No new notifications"
+    },
+    "SubHeader": {
+        "selectOrderType": "Select order type:",
+        "delivery": "Delivery to my location",
+        "pickup": "Pick up from branch",
+        "dineIn": "Dine-in",
+        "defaultBranch": "Al-Nakheel Branch"
+    },
+    "Footer": {
+        "description": "At our restaurant, we offer a dining experience that combines high quality and distinct taste, using the best fresh ingredients under the supervision of a specialized team to ensure the highest standards of hygiene and quality.",
+        "sections": {
+            "categories": "Categories",
+            "more": "More",
+            "about": "About Fasto"
+        },
+        "links": {
+            "sweets": "Sweets",
+            "burger": "Burger",
+            "pizza": "Pizza",
+            "meals": "Meals",
+            "drinks": "Drinks",
+            "myAddresses": "My Addresses",
+            "wallet": "Wallet",
+            "favorites": "Favorites",
+            "profile": "My Profile",
+            "contactUs": "Contact Us",
+            "faq": "FAQ",
+            "terms": "Terms & Conditions"
+        },
+        "contact": "Contact Us",
+        "downloadApp": "Download App",
+        "poweredBy": "Powered By",
+        "rights": "All rights reserved © 2025",
+        "badges": {
+            "appStore": "App Store",
+            "googlePlay": "Google Play",
+            "appGallery": "AppGallery",
+            "maarof": "Maarof",
+            "saudiBusiness": "Saudi Business Center",
+            "mastercard": "Mastercard",
+            "mada": "Mada",
+            "visa": "Visa",
+            "applePay": "Apple Pay",
+            "stcPay": "STC Pay",
+            "tamara": "Tamara",
+            "tabby": "Tabby",
+            "careem": "Careem",
+            "libro": "Libro",
+            "driver": "Driver"
+        }
+    },
+    "Categories": {
+        "all": "All",
+        "pizza": "Pizza",
+        "burger": "Burger",
+        "sweets": "Sweets",
+        "drinks": "Drinks",
+        "meals": "Meals",
+        "chickenPizza": "Chicken Pizza",
+        "beefPizza": "Beef Pizza",
+        "veggiePizza": "Veggie Pizza"
+    },
+    "Promotions": {
+        "title": "Offers",
+        "more": "More",
+        "dishName": "Dish Name",
+        "save": "Save {amount}",
+        "addToCart": "Add to Cart"
+    },
+    "Product": {
+        "calories": "Calories",
+        "prepTime": "min",
+        "allergies": "Allergy Information",
+        "required": "Required",
+        "optional": "Optional",
+        "size": "Size",
+        "addons": "Add-ons",
+        "sauce": "Choice of Sauce",
+        "maxAddons": "You can choose up to {max} add-ons ({current}/{max})",
+        "addToCart": "Add",
+        "currency": "SAR",
+        "share": "Share",
+        "favorite": "Favorite",
+        "all": "All",
+        "products": "Products",
+        "home": "Home",
+        "description": "Explore Fasto's diverse menu, from delicious pizzas and mouth-watering burgers to sweets and refreshing drinks. Order now for an unforgettable taste."
+    },
+    "Orders": {
+        "title": "My Orders",
+        "orderNumber": "Order #{number}",
+        "branch": "{name} Branch",
+        "createdAt": "Order created on {date}, {time}",
+        "deliveryTo": "Delivery to {location}",
+        "total": "{amount}",
+        "details": "Details",
+        "reorder": "Reorder",
+        "reportProblem": "Report a Problem",
+        "status": {
+            "delivered": "Delivered",
+            "waiting": "Waiting"
+        }
+    },
+    "NotFound": {
+        "title": "Oops! Page Not Found",
+        "description": "It seems you've taken a wrong turn. The page you're looking for isn't available or has been moved.",
+        "backHome": "Back to Home"
+    },
+    "Cart": {
+        "title": "Shopping Cart",
+        "empty": "Your cart is empty",
+        "emptyDesc": "It looks like you haven't added any products yet. Explore our menu and pick your favorite meal!",
+        "backToMenu": "Back to Menu",
+        "viewCart": "View Cart",
+        "summary": "Order Summary",
+        "subtotal": "Subtotal",
+        "delivery": "Delivery Fee",
+        "free": "Free",
+        "total": "Total",
+        "checkout": "Checkout",
+        "remove": "Remove",
+        "items": "{count} items",
+        "added": "{name} has been added to your cart!"
+    }
+}

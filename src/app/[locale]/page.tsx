@@ -1,5 +1,5 @@
-import LandingPage from '@/components/pages/landing-page/LandingPage';
-import { storeService } from '@/lib/api/services';
+import LandingPage from '@/components/pages/landing-page/landing-page';
+import { storeService } from '@/services/store-service';
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { Suspense } from 'react';
@@ -40,7 +40,8 @@ export default async function HomePage() {
                     <CategoriesGridSkeleton />
                     <ProductsGridSkeleton />
                 </div>
-            }>
+            }
+        >
             <LandingPage
                 categoriesPromise={categoriesPromise}
                 productsPromise={featuredProductsPromise}

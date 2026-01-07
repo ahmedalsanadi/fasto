@@ -1,20 +1,19 @@
 'use client';
-import Image from 'next/image';
-import { Link, usePathname } from '@/i18n/navigation';
+import { usePathname } from '@/i18n/navigation';
 import { Search, Menu } from 'lucide-react';
-import { NAV_ITEMS } from '@/config/navigation';
-import Logo from './Logo';
-import NavItem from './NavItem';
-import { Input } from '../ui/Input';
+import { NAV_ITEMS } from '@/config/nav-items';
+import Logo from './logo';
+import NavItem from './nav-item';
+import { Input } from '@/components/ui/input';
 
-import UserMenu from './UserMenu';
-import CartDropdown from './CartDropdown';
-import NotificationDropdown from './NotificationDropdown';
-import LanguageSwitcher from './LanguageSwitcher';
+import UserMenu from './user-menu';
+import CartDropdown from './cart-dropdown';
+import NotificationDropdown from './notification-dropdown';
+import LanguageSwitcher from './language-switcher';
 
 import { useTranslations } from 'next-intl';
 import { useUiStore } from '@/store/use-ui-store';
-import MobileSidebar from './MobileSidebar';
+import MobileSidebar from './mobile-sidebar';
 
 export default function Navbar() {
     const pathname = usePathname();
@@ -24,21 +23,19 @@ export default function Navbar() {
     return (
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-                {/*-------- Hamburger (Mobile Only) ----------- */}
                 <button
                     onClick={toggleMobileMenu}
-                    className="lg:hidden p-2 text-white hover:bg-white/10 rounded-full transition-colors">
+                    className="lg:hidden p-2 text-white hover:bg-white/10 rounded-full transition-colors"
+                >
                     <Menu size={24} strokeWidth={1.5} />
                 </button>
 
-                {/*-------- logo----------- */}
                 <Logo
                     brandName="Fasto"
                     brandLogo="/images/svgs/logo-icon.svg"
                 />
             </div>
 
-            {/*-------- Navlist----------- */}
             <div className="hidden lg:flex items-center gap-2 pt-1 text-nowrap">
                 {NAV_ITEMS.map((item) => {
                     const isActive =
@@ -59,7 +56,6 @@ export default function Navbar() {
                 })}
             </div>
 
-            {/*-------- Search----------- */}
             <div className="hidden lg:flex items-center mt-2">
                 <Input
                     type="text"
@@ -85,7 +81,6 @@ export default function Navbar() {
                 <UserMenu />
             </div>
 
-            {/*-------- Mobile Sidebar ----------- */}
             <MobileSidebar />
         </div>
     );

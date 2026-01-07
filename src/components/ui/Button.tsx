@@ -17,8 +17,7 @@ export type ButtonSize =
     | 'icon-sm'
     | 'icon-lg';
 
-export interface ButtonProps
-    extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: ButtonVariant;
     size?: ButtonSize;
     asChild?: boolean;
@@ -110,7 +109,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                     svgSizeStyles[size],
                     className,
                 )}
-                {...props}>
+                {...props}
+            >
                 {children}
             </button>
         );

@@ -10,8 +10,7 @@ const cn = (...classes: (string | undefined | boolean)[]): string => {
 export type InputVariant = 'default' | 'filled' | 'outline';
 export type InputSize = 'default' | 'sm' | 'md' | 'lg';
 
-export interface InputProps
-    extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     variant?: InputVariant;
     inputSize?: InputSize;
     startIcon?: React.ReactNode;
@@ -61,7 +60,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                     containerVariantStyles[variant],
                     containerSizeStyles[inputSize],
                     containerClassName,
-                )}>
+                )}
+            >
                 {startIcon && (
                     <div className="flex shrink-0 items-center justify-center text-muted-foreground/60">
                         {startIcon}

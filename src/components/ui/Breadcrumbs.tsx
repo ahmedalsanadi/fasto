@@ -22,7 +22,8 @@ const Breadcrumbs = ({ items, className }: BreadcrumbsProps) => {
             className={cn(
                 'flex items-center gap-2 text-sm md:text-md px-1 md:px-2 overflow-hidden pt-2',
                 className,
-            )}>
+            )}
+        >
             {items.map((item, index) => {
                 const isLast = index === items.length - 1;
 
@@ -31,7 +32,8 @@ const Breadcrumbs = ({ items, className }: BreadcrumbsProps) => {
                         {item.href && !isLast ? (
                             <Link
                                 href={item.href}
-                                className="text-gray-500 hover:text-libero-red transition-colors font-medium whitespace-nowrap">
+                                className="text-gray-500 hover:text-libero-red transition-colors font-medium whitespace-nowrap"
+                            >
                                 {item.label}
                             </Link>
                         ) : (
@@ -41,7 +43,8 @@ const Breadcrumbs = ({ items, className }: BreadcrumbsProps) => {
                                     isLast
                                         ? 'text-gray-900 font-bold'
                                         : 'text-gray-400 font-medium',
-                                )}>
+                                )}
+                            >
                                 {item.label}
                             </span>
                         )}

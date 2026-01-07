@@ -1,8 +1,7 @@
-// src/app/sitemap.ts
 import { MetadataRoute } from 'next';
 import { routing } from '@/i18n/routing';
-import { siteConfig } from '../config/site';
-import { storeService } from '@/lib/api/services';
+import { siteConfig } from '@/config/site';
+import { storeService } from '@/services/store-service';
 
 type ChangeFreq =
     | 'always'
@@ -38,14 +37,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const staticRoutes = localizeRoutes([
         { path: '', priority: 1, changeFrequency: 'daily' },
         { path: '/products', priority: 0.9, changeFrequency: 'daily' },
-        { path: '/categories', priority: 0.8, changeFrequency: 'weekly' },
+        { path: '/my-orders', priority: 0.5, changeFrequency: 'monthly' },
+        { path: '/cart', priority: 0.5, changeFrequency: 'monthly' },
     ]);
 
     // 2. Dynamic Product Routes
     let productRoutes: MetadataRoute.Sitemap = [];
     try {
         const { data: products } = await storeService.getProducts({
-            per_page: 50,
+            per_page: 100,
         });
         productRoutes = localizeRoutes(
             products.map((p) => ({
@@ -55,24 +55,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             })),
         );
     } catch {
-        /* Silent */
+        /* Silent fallback */
     }
 
-    // 3. Dynamic Category Routes
+    // 3. Dynamic Category Routes (Assuming they use ?category=slug or similar, but if we want direct links:)
     let categoryRoutes: MetadataRoute.Sitemap = [];
     try {
         const categories = await storeService.getCategories(true);
         if (categories) {
             categoryRoutes = localizeRoutes(
                 categories.map((c) => ({
-                    path: `/categories/${c.id}`,
+                    path: `/products?category=${c.slug}`,
                     priority: 0.6,
                     changeFrequency: 'monthly',
                 })),
             );
         }
     } catch {
-        /* Silent */
+        /* Silent fallback */
     }
 
     return [...staticRoutes, ...productRoutes, ...categoryRoutes];

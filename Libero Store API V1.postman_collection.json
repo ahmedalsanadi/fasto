@@ -1,2163 +1,1882 @@
 {
-	"info": {
-		"_postman_id": "6dd5f766-a12e-4762-8359-757b61f84c18",
-		"name": "Libero Store API V1",
-		"description": "Multi-tenant REST API for Libero Ecommerce platform.\n\n## Applications\n- **Store App**: Customer-facing endpoints\n- **Cashier App**: Merchant & Staff management\n- **Captain App**: Captain agent operations\n\n## Authentication\nAll apps use OTP-based authentication.\n\n## Required Headers\n- `X-Store-Key`: Tenant identifier\n- `Authorization`: Bearer {token}\n- `Accept-Language`: ar or en\n\n## Rate Limiting\n- OTP: 5 requests/minute\n- Auth: 10 requests/minute\n- API: 60 requests/minute",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "14134177"
-	},
-	"item": [
-		{
-			"name": "Authentication",
-			"item": [
-				{
-					"name": "Store (Customers)",
-					"item": [
-						{
-							"name": "Send OTP",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}",
-										"description": "Tenant identifier"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept-Language",
-										"value": "ar"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"phone\": \"0501234567\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/auth/store/send-otp",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"store",
-										"send-otp"
-									]
-								},
-								"description": "Request OTP for customer authentication.\n\n**Rate Limit:** 5 requests/minute\n\n**Required Fields:**\n\n- `phone`: Customer phone number\n    \n\nif you get\n\n```\n \"is_new_user\": false\n\n ```\n\nuse update profile request to complete user data"
-							},
-							"response": []
-						},
-						{
-							"name": "Login",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"if (pm.response.code === 200) {",
-											"    var jsonData = pm.response.json();",
-											"    if (jsonData.data && jsonData.data.token) {",
-											"        pm.environment.set('customer_token', jsonData.data.token);",
-											"        console.log('Token saved to customer_token');",
-											"    }",
-											"}"
-										],
-										"type": "text/javascript",
-										"packages": {},
-										"requests": {}
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept-Language",
-										"value": "ar"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"phone\": \"0501234567\",\n    \"otp\": \"0000\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/auth/store/login",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"store",
-										"login"
-									]
-								},
-								"description": "Verify OTP and get access token.\n\n**Rate Limit:** 10 requests/minute\n\n**Required Fields:**\n\n- `phone`: Customer phone number\n    \n- `otp`: One-time password received via SMS (for test :0000)\n    \n\n**Response:** Token is automatically saved to `customer_token` variable"
-							},
-							"response": []
-						},
-						{
-							"name": "Me",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/auth/store/me",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"store",
-										"me"
-									]
-								},
-								"description": "Get current authenticated customer information."
-							},
-							"response": []
-						},
-						{
-							"name": "Logout",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/auth/store/logout",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"store",
-										"logout"
-									]
-								},
-								"description": "Invalidate current customer token."
-							},
-							"response": []
-						}
-					],
-					"auth": {
-						"type": "bearer",
-						"bearer": [
-							{
-								"key": "token",
-								"value": "{{customer_token}}",
-								"type": "string"
-							}
-						]
-					},
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {},
-								"exec": [
-									""
-								]
-							}
-						},
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {},
-								"exec": [
-									""
-								]
-							}
-						}
-					]
-				},
-				{
-					"name": "Cashier",
-					"item": [
-						{
-							"name": "Send OTP",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"phone\": \"+966501234569\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/auth/cashier/send-otp",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"cashier",
-										"send-otp"
-									]
-								},
-								"description": "Request OTP for cashier authentication.\n\n**Required Fields:**\n- `phone`: Cashier phone number"
-							},
-							"response": []
-						},
-						{
-							"name": "Login",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"if (pm.response.code === 200) {",
-											"    var jsonData = pm.response.json();",
-											"    if (jsonData.data && jsonData.data.token) {",
-											"        pm.environment.set('cashier_token', jsonData.data.token);",
-											"    }",
-											"}"
-										],
-										"type": "text/javascript",
-										"packages": {},
-										"requests": {}
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"phone\": \"+966501234569\",\n    \"otp\": \"0000\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/auth/cashier/login",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"cashier",
-										"login"
-									]
-								},
-								"description": "Verify OTP and get access token.\n\n**Note:** Validates that user has cashier role (owner, admin, staff)\n\n**Required Fields:**\n\n- `phone`: Cashier phone number\n    \n- `otp`: One-time password (for test :0000)"
-							},
-							"response": []
-						},
-						{
-							"name": "Me",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{cashier_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/auth/cashier/me",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"cashier",
-										"me"
-									]
-								},
-								"description": "Get current authenticated cashier information."
-							},
-							"response": []
-						},
-						{
-							"name": "Logout",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{cashier_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/auth/cashier/logout",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"cashier",
-										"logout"
-									]
-								},
-								"description": "Invalidate current cashier token."
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Captain",
-					"item": [
-						{
-							"name": "Send OTP",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"phone\": \"0501234567\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/auth/captain/send-otp",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"captain",
-										"send-otp"
-									]
-								},
-								"description": "Request OTP for captain agent authentication.\n\n**Required Fields:**\n- `phone`: Captain agent phone number"
-							},
-							"response": []
-						},
-						{
-							"name": "Login",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"if (pm.response.code === 200) {",
-											"    var jsonData = pm.response.json();",
-											"    if (jsonData.data && jsonData.data.token) {",
-											"        pm.environment.set('captain_token', jsonData.data.token);",
-											"    }",
-											"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"phone\": \"0501234567\",\n    \"otp\": \"1234\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/auth/captain/login",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"captain",
-										"login"
-									]
-								},
-								"description": "Verify OTP and get access token.\n\n**Note:** Validates that user has captain role\n\n**Required Fields:**\n- `phone`: Captain agent phone number\n- `otp`: One-time password"
-							},
-							"response": []
-						},
-						{
-							"name": "Me",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{captain_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/auth/captain/me",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"captain",
-										"me"
-									]
-								},
-								"description": "Get current authenticated captain agent information."
-							},
-							"response": []
-						},
-						{
-							"name": "Logout",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{captain_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/auth/captain/logout",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"auth",
-										"captain",
-										"logout"
-									]
-								},
-								"description": "Invalidate current captain agent token."
-							},
-							"response": []
-						}
-					]
-				}
-			]
-		},
-		{
-			"name": "Store App",
-			"item": [
-				{
-					"name": "Profile",
-					"item": [
-						{
-							"name": "Get Profile",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/profile",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"profile"
-									]
-								},
-								"description": "Get customer profile information."
-							},
-							"response": []
-						},
-						{
-							"name": "Update Profile",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"first_name\": \"احمد\",\n    \"last_name\": \"علي\",\n    \"email\": \"ahmed@example.com\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/store/profile/update",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"profile",
-										"update"
-									]
-								},
-								"description": "# Update Customer Profile\n\n## Update Profile\n\nUpdates the authenticated customer's profile information.\n\n**Note:** This endpoint also serves as \"Complete Registration\" for new customers. If the customer's name is empty or \"Guest\", `first_name` becomes required.\n\n### Request\n\n```\nPUT /api/v1/store/profile\n\n ```\n\n### Body Parameters\n\n| Parameter | Type | Required |\n| --- | --- | --- |\n| first_name | string | Conditional\\* |\n| middle_name | string | No |\n| last_name | string | No |\n| email | string | No |\n\n`_first_name_` _is \\*_required** if customer has no name or name is \"Guest\" (new registration flow)\n\n### Example Request\n\n``` json\n{\n    \"first_name\": \"Ahmed\",\n    \"last_name\": \"Mohammed\",\n    \"email\": \"ahmed@example.com\"\n}\n\n ```"
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Products",
-					"item": [
-						{
-							"name": "List Products",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/products?page=1&per_page=15",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"products"
-									],
-									"query": [
-										{
-											"key": "search",
-											"value": "",
-											"disabled": true
-										},
-										{
-											"key": "category_id",
-											"value": "",
-											"disabled": true
-										},
-										{
-											"key": "brand_id",
-											"value": "2",
-											"disabled": true
-										},
-										{
-											"key": "collection_id",
-											"value": "",
-											"disabled": true
-										},
-										{
-											"key": "is_featured",
-											"value": "true",
-											"disabled": true
-										},
-										{
-											"key": "is_latest",
-											"value": "true",
-											"disabled": true
-										},
-										{
-											"key": "min_price",
-											"value": "50",
-											"disabled": true
-										},
-										{
-											"key": "max_price",
-											"value": "",
-											"disabled": true
-										},
-										{
-											"key": "sort",
-											"value": "price",
-											"disabled": true
-										},
-										{
-											"key": "order",
-											"value": "desc",
-											"disabled": true
-										},
-										{
-											"key": "page",
-											"value": "1"
-										},
-										{
-											"key": "per_page",
-											"value": "15"
-										}
-									]
-								},
-								"description": "# Get Products\n\n## 🔗 Endpoint\n\n```\nGET /api/v1/store/products\n\n ```\n\n---\n\n## 🎛️ Query Parameters\n\n| Parameter | Type | Default | Description |\n| --- | --- | --- | --- |\n| `search` | string | \\- | 🔍 Search in product title and description |\n| `category_id` | integer | \\- | Filter by category ID |\n| `brand_id` | integer | \\- | Filter by brand ID |\n| `collection_id` | integer | \\- | Filter by collection ID |\n| `is_featured` | boolean | \\- | ⭐ Filter featured products only |\n| `is_latest` | boolean | \\- | 🆕 Filter latest products only |\n| `min_price` | numeric | \\- | 💰 Minimum price filter |\n| `max_price` | numeric | \\- | 💰 Maximum price filter |\n| `sort` | string | `created_at` | Sort field: `price`, `title`, `created_at` |\n| `order` | string | `asc` | Sort direction: `asc`, `desc` |\n| `per_page` | integer | `15` | Items per page |\n| `page` | integer | `1` | Page number |\n\n---\n\n## 📝 Usage Examples\n\n### Basic Requests\n\n``` http\n# Get all products (paginated)\nGET /products\n# Search products\nGET /products?search=برجر\n# Get products by category\nGET /products?category_id=1\n# Get products by brand\nGET /products?brand_id=2\n\n ```\n\n### Featured & Latest\n\n``` http\n# Get featured products\nGET /products?is_featured=true\n# Get latest products\nGET /products?is_latest=true\n# Get featured products from specific category\nGET /products?is_featured=true&category_id=1\n\n ```\n\n### Price Filtering\n\n``` http\n# Products under 100 SAR\nGET /products?max_price=100\n# Products between 50-200 SAR\nGET /products?min_price=50&max_price=200\n\n ```\n\n### Sorting\n\n``` http\n# Sort by price (low to high)\nGET /products?sort=price&order=asc\n# Sort by price (high to low)\nGET /products?sort=price&order=desc\n# Sort by newest\nGET /products?sort=created_at&order=desc\n\n ```\n\n### Combined Filters\n\n``` http\n# Featured products in category, sorted by price\nGET /products?category_id=1&is_featured=true&sort=price&order=asc\n# Search with price range\nGET /products?search=قهوة&min_price=10&max_price=50\n# Full filter example\nGET /products?category_id=1&brand_id=2&min_price=50&max_price=500&sort=price&order=asc&per_page=20\n\n ```\n\n---\n\n## ✅ Response Format\n\n``` json\n{\n    \"success\": true,\n    \"message\": \"Products retrieved successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"title\": \"برجر كلاسيكي\",\n            \"price\": 25.00,\n            \"sale_price\": null,\n            \"cover_image_url\": \"https://...\",\n            \"is_available\": true,\n            \"type\": \"FOOD\"\n        }\n    ],\n    \"meta\": {\n        \"current_page\": 1,\n        \"last_page\": 5,\n        \"per_page\": 15,\n        \"total\": 72\n    }\n}\n\n ```\n\n---\n\n## 💡 Best Practices\n\n1. **Use** **`is_featured=true`** for homepage featured section\n    \n2. **Use** **`is_latest=true`** for \"New Arrivals\" section\n    \n3. **Combine filters** for advanced search pages\n    \n4. **Use pagination** (`per_page`, `page`) for large result sets\n    \n5. **Cache responses** on client side when possible\n    \n\n---"
-							},
-							"response": []
-						},
-						{
-							"name": "Product Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/products/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"products",
-										"1"
-									]
-								},
-								"description": "Get product details with variants, addons, and custom fields.\n\n**URL Parameters:**\n- `id`: Product ID"
-							},
-							"response": []
-						}
-					],
-					"description": "---"
-				},
-				{
-					"name": "Categories",
-					"item": [
-						{
-							"name": "List Categories",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/categories?tree=true",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"categories"
-									],
-									"query": [
-										{
-											"key": "tree",
-											"value": "true"
-										}
-									]
-								},
-								"description": "Get all categories with children.\n\n**URL Parameters:**\n\n- tree: Boolean (optional)"
-							},
-							"response": []
-						},
-						{
-							"name": "Category Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/categories/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"categories",
-										"1"
-									]
-								},
-								"description": "Get category details.\n\n**URL Parameters:**\n- `id`: Category ID"
-							},
-							"response": []
-						},
-						{
-							"name": "Category Products",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/categories/1/products",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"categories",
-										"1",
-										"products"
-									]
-								},
-								"description": "Get products by category.\n\n**URL Parameters:**\n- `categoryId`: Category ID"
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Brands",
-					"item": [
-						{
-							"name": "List Brands",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/brands",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"brands"
-									]
-								},
-								"description": "Get all brands."
-							},
-							"response": []
-						},
-						{
-							"name": "Brand Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/brands/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"brands",
-										"1"
-									]
-								},
-								"description": "Get brand details.\n\n**URL Parameters:**\n- `id`: Brand ID"
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Collections",
-					"item": [
-						{
-							"name": "List Collections",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/collections",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"collections"
-									]
-								},
-								"description": "Get all collections (offers, special groups)."
-							},
-							"response": []
-						},
-						{
-							"name": "Collection Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/collections/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"collections",
-										"1"
-									]
-								},
-								"description": "Get collection with products.\n\n**URL Parameters:**\n- `id`: Collection ID"
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Orders",
-					"item": [
-						{
-							"name": "List Orders",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/orders?page=1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"orders"
-									],
-									"query": [
-										{
-											"key": "page",
-											"value": "1"
-										}
-									]
-								},
-								"description": "Get customer orders (paginated)."
-							},
-							"response": []
-						},
-						{
-							"name": "Order Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/orders/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"orders",
-										"1"
-									]
-								},
-								"description": "Get order details.\n\n**URL Parameters:**\n- `id`: Order ID"
-							},
-							"response": []
-						},
-						{
-							"name": "Create Order",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{customer_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"items\": [\n        {\n            \"product_id\": 1,\n            \"quantity\": 2,\n            \"variant_id\": null,\n            \"addons\": [\n                {\"addon_item_id\": 1, \"quantity\": 1}\n            ],\n            \"custom_fields\": {\n                \"recipient_name\": \"محمد\",\n                \"gift_message\": \"عيد ميلاد سعيد\"\n            },\n            \"notes\": \"بدون بصل\"\n        }\n    ],\n    \"address_id\": 1,\n    \"payment_method\": \"cash\",\n    \"coupon_code\": null,\n    \"notes\": \"الرجاء الاتصال قبل التوصيل\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/store/orders",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"orders"
-									]
-								},
-								"description": "Create new order.\n\n**Required Fields:**\n- `items`: Array of order items\n  - `product_id`: Product ID (required)\n  - `quantity`: Quantity (required)\n  - `variant_id`: Variant ID (optional)\n  - `addons`: Array of addon items (optional)\n  - `custom_fields`: Custom field values (optional)\n  - `notes`: Item notes (optional)\n- `address_id`: Captain address ID\n- `payment_method`: cash, card, wallet\n\n**Optional Fields:**\n- `coupon_code`: Discount coupon\n- `notes`: Order notes"
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Branches",
-					"item": [
-						{
-							"name": "Get Branches",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}",
-										"type": "text"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json",
-										"type": "text"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/branches",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"branches"
-									],
-									"query": [
-										{
-											"key": "type",
-											"value": "1",
-											"description": "1: Branch, 2: Warehouse, 3: Kitchen",
-											"disabled": true
-										},
-										{
-											"key": "search",
-											"value": "الرياض",
-											"description": "Search by name",
-											"disabled": true
-										}
-									]
-								},
-								"description": "Get all active branches with optional filtering.\n\n**Examples:**\n```\nGET /branches              # All branches\nGET /branches?type=1       # Branches only (no warehouses/kitchens)\nGET /branches?search=الرياض # Search by name\n```"
-							},
-							"response": []
-						},
-						{
-							"name": "Get Branch Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}",
-										"type": "text"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json",
-										"type": "text"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/store/branches/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"store",
-										"branches",
-										"1"
-									]
-								},
-								"description": "Get full details of a specific branch including address and working hours."
-							},
-							"response": []
-						}
-					],
-					"description": "# 🏢 Branches API\n\nAPI endpoints for retrieving store branches.\n\n## Endpoint\n\n```\nGET /api/v1/{app}/branches\n\n ```\n\nWhere `{app}` is: `store`, `cashier`, or `captain`\n\n## Query Parameters\n\n| Parameter | Type | Description |\n| --- | --- | --- |\n| `type` | int | Filter by type: 1=Branch, 2=Warehouse, 3=Kitchen |\n| `search` | string | Search by branch name |\n\n## Response (List)\n\n``` json\n{\n    \"success\": true,\n    \"message\": \"Branches retrieved successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"name\": \"فرع الرياض\",\n            \"type\": 1,\n            \"type_label\": \"فرع\",\n            \"image_url\": \"https://...\",\n            \"status\": 1\n        }\n    ]\n}\n\n ```\n\n## Response (Details)\n\n``` json\n{\n    \"success\": true,\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"فرع الرياض\",\n        \"type\": 1,\n        \"type_label\": \"فرع\",\n        \"description\": \"الفرع الرئيسي\",\n        \"image_url\": \"https://...\",\n        \"status\": 1,\n        \"support_channels\": [...],\n        \"address\": {...},\n        \"working_hours\": {...}\n    }\n}\n\n ```"
-				},
-				{
-					"name": "Config",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "X-Store-Key",
-								"value": "{{store_key}}"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/store/config",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"store",
-								"config"
-							]
-						},
-						"description": "Get store configuration including theme, app version, and home sections."
-					},
-					"response": []
-				},
-				{
-					"name": "Settings Params",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "X-Store-Key",
-								"value": "{{store_key}}"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{customer_token}}"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/store/settings/params",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"store",
-								"settings",
-								"params"
-							]
-						},
-						"description": "Get static params (enums).\n\n**Returns:**\n- `user_roles`: Available user roles\n- `pid_types`: ID types\n- `nationalities`: Available nationalities\n- `product_types`: Product types with shipping/digital flags"
-					},
-					"response": []
-				}
-			],
-			"auth": {
-				"type": "bearer",
-				"bearer": [
-					{
-						"key": "token",
-						"value": "{{customer_token}}",
-						"type": "string"
-					}
-				]
-			},
-			"event": [
-				{
-					"listen": "prerequest",
-					"script": {
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {},
-						"exec": [
-							""
-						]
-					}
-				},
-				{
-					"listen": "test",
-					"script": {
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {},
-						"exec": [
-							""
-						]
-					}
-				}
-			]
-		},
-		{
-			"name": "Cashier App",
-			"item": [
-				{
-					"name": "Profile",
-					"item": [
-						{
-							"name": "Update Profile",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{cashier_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"first_name\": \"Mohammed\",\n    \"last_name\": \"Ahmed\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/cashier/profile/update",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"cashier",
-										"profile",
-										"update"
-									]
-								},
-								"description": "Update cashier profile."
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Products",
-					"item": [
-						{
-							"name": "List Products",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/cashier/products?page=1&per_page=15",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"cashier",
-										"products"
-									],
-									"query": [
-										{
-											"key": "search",
-											"value": "",
-											"disabled": true
-										},
-										{
-											"key": "category_id",
-											"value": "",
-											"disabled": true
-										},
-										{
-											"key": "brand_id",
-											"value": "2",
-											"disabled": true
-										},
-										{
-											"key": "collection_id",
-											"value": "",
-											"disabled": true
-										},
-										{
-											"key": "is_featured",
-											"value": "true",
-											"disabled": true
-										},
-										{
-											"key": "is_latest",
-											"value": "true",
-											"disabled": true
-										},
-										{
-											"key": "min_price",
-											"value": "50",
-											"disabled": true
-										},
-										{
-											"key": "max_price",
-											"value": "",
-											"disabled": true
-										},
-										{
-											"key": "sort",
-											"value": "price",
-											"disabled": true
-										},
-										{
-											"key": "order",
-											"value": "desc",
-											"disabled": true
-										},
-										{
-											"key": "page",
-											"value": "1"
-										},
-										{
-											"key": "per_page",
-											"value": "15"
-										}
-									]
-								},
-								"description": "# Get Products\n\n## 🔗 Endpoint\n\n```\nGET /api/v1/cashier/products\n\n ```\n\n---\n\n## 🎛️ Query Parameters\n\n| Parameter | Type | Default | Description |\n| --- | --- | --- | --- |\n| `search` | string | \\- | 🔍 Search in product title and description |\n| `category_id` | integer | \\- | Filter by category ID |\n| `brand_id` | integer | \\- | Filter by brand ID |\n| `collection_id` | integer | \\- | Filter by collection ID |\n| `is_featured` | boolean | \\- | ⭐ Filter featured products only |\n| `is_latest` | boolean | \\- | 🆕 Filter latest products only |\n| `min_price` | numeric | \\- | 💰 Minimum price filter |\n| `max_price` | numeric | \\- | 💰 Maximum price filter |\n| `sort` | string | `created_at` | Sort field: `price`, `title`, `created_at` |\n| `order` | string | `asc` | Sort direction: `asc`, `desc` |\n| `per_page` | integer | `15` | Items per page |\n| `page` | integer | `1` | Page number |\n\n---\n\n## 📝 Usage Examples\n\n### Basic Requests\n\n``` http\n# Get all products (paginated)\nGET /products\n# Search products\nGET /products?search=برجر\n# Get products by category\nGET /products?category_id=1\n# Get products by brand\nGET /products?brand_id=2\n\n ```\n\n### Featured & Latest\n\n``` http\n# Get featured products\nGET /products?is_featured=true\n# Get latest products\nGET /products?is_latest=true\n# Get featured products from specific category\nGET /products?is_featured=true&category_id=1\n\n ```\n\n### Price Filtering\n\n``` http\n# Products under 100 SAR\nGET /products?max_price=100\n# Products between 50-200 SAR\nGET /products?min_price=50&max_price=200\n\n ```\n\n### Sorting\n\n``` http\n# Sort by price (low to high)\nGET /products?sort=price&order=asc\n# Sort by price (high to low)\nGET /products?sort=price&order=desc\n# Sort by newest\nGET /products?sort=created_at&order=desc\n\n ```\n\n### Combined Filters\n\n``` http\n# Featured products in category, sorted by price\nGET /products?category_id=1&is_featured=true&sort=price&order=asc\n# Search with price range\nGET /products?search=قهوة&min_price=10&max_price=50\n# Full filter example\nGET /products?category_id=1&brand_id=2&min_price=50&max_price=500&sort=price&order=asc&per_page=20\n\n ```\n\n---\n\n## ✅ Response Format\n\n``` json\n{\n    \"success\": true,\n    \"message\": \"Products retrieved successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"title\": \"برجر كلاسيكي\",\n            \"price\": 25.00,\n            \"sale_price\": null,\n            \"cover_image_url\": \"https://...\",\n            \"is_available\": true,\n            \"type\": \"FOOD\"\n        }\n    ],\n    \"meta\": {\n        \"current_page\": 1,\n        \"last_page\": 5,\n        \"per_page\": 15,\n        \"total\": 72\n    }\n}\n\n ```\n\n---\n\n## 💡 Best Practices\n\n1. **Use** **`is_featured=true`** for homepage featured section\n    \n2. **Use** **`is_latest=true`** for \"New Arrivals\" section\n    \n3. **Combine filters** for advanced search pages\n    \n4. **Use pagination** (`per_page`, `page`) for large result sets\n    \n5. **Cache responses** on client side when possible\n    \n\n---"
-							},
-							"response": []
-						},
-						{
-							"name": "Product Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{cashier_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/cashier/products/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"cashier",
-										"products",
-										"1"
-									]
-								},
-								"description": "Get product details.\n\n**URL Parameters:**\n- `id`: Product ID"
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Categories",
-					"item": [
-						{
-							"name": "List Categories",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{cashier_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/cashier/categories",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"cashier",
-										"categories"
-									]
-								},
-								"description": "# Get all categories.\n\n## Parameters\n\n```\n# Flat list (للـ dropdowns, filters)\nGET /categories\n# Tree structure (للـ navigation menu)\nGET /categories?tree=true\n\n ```\n\n```\n# Get root categories only\nGET /categories?parent_id=null\n# Get children of category 5\nGET /categories?parent_id=5\n\n ```"
-							},
-							"response": []
-						},
-						{
-							"name": "Category Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{cashier_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/cashier/categories/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"cashier",
-										"categories",
-										"1"
-									]
-								},
-								"description": "Get category details."
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Orders",
-					"item": [
-						{
-							"name": "List Orders",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{cashier_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/cashier/orders",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"cashier",
-										"orders"
-									]
-								},
-								"description": "Get all orders."
-							},
-							"response": []
-						},
-						{
-							"name": "Order Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{cashier_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/cashier/orders/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"cashier",
-										"orders",
-										"1"
-									]
-								},
-								"description": "Get order details."
-							},
-							"response": []
-						},
-						{
-							"name": "Update Order",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{cashier_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"status\": \"processing\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/cashier/orders/1/update",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"cashier",
-										"orders",
-										"1",
-										"update"
-									]
-								},
-								"description": "Update order.\n\n**Fields:**\n- `status`: Order status"
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Branches",
-					"item": [
-						{
-							"name": "Get Branches",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{token}}",
-										"type": "text"
-									},
-									{
-										"key": "X-Tenant",
-										"value": "{{tenant_key}}",
-										"type": "text"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json",
-										"type": "text"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/store/branches",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"store",
-										"branches"
-									],
-									"query": [
-										{
-											"key": "type",
-											"value": "1",
-											"description": "1: Branch, 2: Warehouse, 3: Kitchen",
-											"disabled": true
-										},
-										{
-											"key": "search",
-											"value": "الرياض",
-											"description": "Search by name",
-											"disabled": true
-										}
-									]
-								},
-								"description": "Get all active branches with optional filtering.\n\n**Examples:**\n```\nGET /branches              # All branches\nGET /branches?type=1       # Branches only (no warehouses/kitchens)\nGET /branches?search=الرياض # Search by name\n```"
-							},
-							"response": []
-						},
-						{
-							"name": "Get Branch Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{token}}",
-										"type": "text"
-									},
-									{
-										"key": "X-Tenant",
-										"value": "{{tenant_key}}",
-										"type": "text"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json",
-										"type": "text"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/store/branches/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"store",
-										"branches",
-										"1"
-									]
-								},
-								"description": "Get full details of a specific branch including address and working hours."
-							},
-							"response": []
-						}
-					],
-					"description": "# 🏢 Branches API\n\nAPI endpoints for retrieving store branches.\n\n## Endpoint\n\n```\nGET /api/v1/{app}/branches\n\n ```\n\nWhere `{app}` is: `store`, `cashier`, or `captain`\n\n## Query Parameters\n\n| Parameter | Type | Description |\n| --- | --- | --- |\n| `type` | int | Filter by type: 1=Branch, 2=Warehouse, 3=Kitchen |\n| `search` | string | Search by branch name |\n\n## Response (List)\n\n``` json\n{\n    \"success\": true,\n    \"message\": \"Branches retrieved successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"name\": \"فرع الرياض\",\n            \"type\": 1,\n            \"type_label\": \"فرع\",\n            \"image_url\": \"https://...\",\n            \"status\": 1\n        }\n    ]\n}\n\n ```\n\n## Response (Details)\n\n``` json\n{\n    \"success\": true,\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"فرع الرياض\",\n        \"type\": 1,\n        \"type_label\": \"فرع\",\n        \"description\": \"الفرع الرئيسي\",\n        \"image_url\": \"https://...\",\n        \"status\": 1,\n        \"support_channels\": [...],\n        \"address\": {...},\n        \"working_hours\": {...}\n    }\n}\n\n ```"
-				},
-				{
-					"name": "Dashboard",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "X-Store-Key",
-								"value": "{{store_key}}"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{cashier_token}}"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/cashier/dashboard",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"cashier",
-								"dashboard"
-							]
-						},
-						"description": "Get dashboard analytics."
-					},
-					"response": []
-				}
-			],
-			"auth": {
-				"type": "bearer",
-				"bearer": [
-					{
-						"key": "token",
-						"value": "{{cashier_token}}",
-						"type": "string"
-					}
-				]
-			},
-			"event": [
-				{
-					"listen": "prerequest",
-					"script": {
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {},
-						"exec": [
-							""
-						]
-					}
-				},
-				{
-					"listen": "test",
-					"script": {
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {},
-						"exec": [
-							""
-						]
-					}
-				}
-			]
-		},
-		{
-			"name": "Captain App",
-			"item": [
-				{
-					"name": "Profile",
-					"item": [
-						{
-							"name": "Get Profile",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{captain_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/captain/profile",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"captain",
-										"profile"
-									]
-								},
-								"description": "Get captain agent profile."
-							},
-							"response": []
-						},
-						{
-							"name": "Update Profile",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{captain_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"first_name\": \"Ali\",\n    \"last_name\": \"Hassan\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/captain/profile/update",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"captain",
-										"profile",
-										"update"
-									]
-								},
-								"description": "Update captain agent profile."
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Orders",
-					"item": [
-						{
-							"name": "List Orders",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{captain_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/captain/orders",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"captain",
-										"orders"
-									]
-								},
-								"description": "Get assigned orders."
-							},
-							"response": []
-						},
-						{
-							"name": "Order Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{captain_token}}"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/captain/orders/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"captain",
-										"orders",
-										"1"
-									]
-								},
-								"description": "Get order details."
-							},
-							"response": []
-						},
-						{
-							"name": "Update Order Status",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "X-Store-Key",
-										"value": "{{store_key}}"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{captain_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"status\": \"delivered\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/captain/orders/1/status",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"captain",
-										"orders",
-										"1",
-										"status"
-									]
-								},
-								"description": "Update order captain status.\n\n**Fields:**\n- `status`: picked_up, on_the_way, delivered"
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Update Location",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Store-Key",
-								"value": "{{store_key}}"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{captain_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"latitude\": 24.7136,\n    \"longitude\": 46.6753\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/captain/location",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"captain",
-								"location"
-							]
-						},
-						"description": "Update captain agent current location.\n\n**Required Fields:**\n- `latitude`: Current latitude\n- `longitude`: Current longitude"
-					},
-					"response": []
-				}
-			],
-			"auth": {
-				"type": "bearer",
-				"bearer": [
-					{
-						"key": "token",
-						"value": "{{captain_token}}",
-						"type": "string"
-					}
-				]
-			},
-			"event": [
-				{
-					"listen": "prerequest",
-					"script": {
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {},
-						"exec": [
-							""
-						]
-					}
-				},
-				{
-					"listen": "test",
-					"script": {
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {},
-						"exec": [
-							""
-						]
-					}
-				}
-			]
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"packages": {},
-				"requests": {},
-				"exec": [
-					""
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"packages": {},
-				"requests": {},
-				"exec": [
-					""
-				]
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "{{base_url}}"
-		},
-		{
-			"key": "store_key",
-			"value": "37858998-3343-4293-98ac-1e28cc0f9e27"
-		},
-		{
-			"key": "base_url",
-			"value": "https://store-api.libro-shop.com/api/v1",
-			"disabled": true
-		},
-		{
-			"value": ""
-		}
-	]
+    "info": {
+        "_postman_id": "6dd5f766-a12e-4762-8359-757b61f84c18",
+        "name": "Libero Store API V1",
+        "description": "Multi-tenant REST API for Libero Ecommerce platform.\n\n## Applications\n- **Store App**: Customer-facing endpoints\n- **Cashier App**: Merchant & Staff management\n- **Captain App**: Captain agent operations\n\n## Authentication\nAll apps use OTP-based authentication.\n\n## Required Headers\n- `X-Store-Key`: Tenant identifier\n- `Authorization`: Bearer {token}\n- `Accept-Language`: ar or en\n\n## Rate Limiting\n- OTP: 5 requests/minute\n- Auth: 10 requests/minute\n- API: 60 requests/minute",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "14134177"
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Store (Customers)",
+                    "item": [
+                        {
+                            "name": "Send OTP",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}",
+                                        "description": "Tenant identifier"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept-Language",
+                                        "value": "ar"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"phone\": \"0501234567\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/auth/store/send-otp",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "store", "send-otp"]
+                                },
+                                "description": "Request OTP for customer authentication.\n\n**Rate Limit:** 5 requests/minute\n\n**Required Fields:**\n\n- `phone`: Customer phone number\n    \n\nif you get\n\n```\n \"is_new_user\": false\n\n ```\n\nuse update profile request to complete user data"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Login",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    var jsonData = pm.response.json();",
+                                            "    if (jsonData.data && jsonData.data.token) {",
+                                            "        pm.environment.set('customer_token', jsonData.data.token);",
+                                            "        console.log('Token saved to customer_token');",
+                                            "    }",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript",
+                                        "packages": {},
+                                        "requests": {}
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept-Language",
+                                        "value": "ar"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"phone\": \"0501234567\",\n    \"otp\": \"0000\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/auth/store/login",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "store", "login"]
+                                },
+                                "description": "Verify OTP and get access token.\n\n**Rate Limit:** 10 requests/minute\n\n**Required Fields:**\n\n- `phone`: Customer phone number\n    \n- `otp`: One-time password received via SMS (for test :0000)\n    \n\n**Response:** Token is automatically saved to `customer_token` variable"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Me",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/auth/store/me",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "store", "me"]
+                                },
+                                "description": "Get current authenticated customer information."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Logout",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/auth/store/logout",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "store", "logout"]
+                                },
+                                "description": "Invalidate current customer token."
+                            },
+                            "response": []
+                        }
+                    ],
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{customer_token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "packages": {},
+                                "requests": {},
+                                "exec": [""]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "packages": {},
+                                "requests": {},
+                                "exec": [""]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Cashier",
+                    "item": [
+                        {
+                            "name": "Send OTP",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"phone\": \"+966501234569\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/auth/cashier/send-otp",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "cashier", "send-otp"]
+                                },
+                                "description": "Request OTP for cashier authentication.\n\n**Required Fields:**\n- `phone`: Cashier phone number"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Login",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    var jsonData = pm.response.json();",
+                                            "    if (jsonData.data && jsonData.data.token) {",
+                                            "        pm.environment.set('cashier_token', jsonData.data.token);",
+                                            "    }",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript",
+                                        "packages": {},
+                                        "requests": {}
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"phone\": \"+966501234569\",\n    \"otp\": \"0000\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/auth/cashier/login",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "cashier", "login"]
+                                },
+                                "description": "Verify OTP and get access token.\n\n**Note:** Validates that user has cashier role (owner, admin, staff)\n\n**Required Fields:**\n\n- `phone`: Cashier phone number\n    \n- `otp`: One-time password (for test :0000)"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Me",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{cashier_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/auth/cashier/me",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "cashier", "me"]
+                                },
+                                "description": "Get current authenticated cashier information."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Logout",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{cashier_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/auth/cashier/logout",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "cashier", "logout"]
+                                },
+                                "description": "Invalidate current cashier token."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Captain",
+                    "item": [
+                        {
+                            "name": "Send OTP",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"phone\": \"0501234567\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/auth/captain/send-otp",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "captain", "send-otp"]
+                                },
+                                "description": "Request OTP for captain agent authentication.\n\n**Required Fields:**\n- `phone`: Captain agent phone number"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Login",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    var jsonData = pm.response.json();",
+                                            "    if (jsonData.data && jsonData.data.token) {",
+                                            "        pm.environment.set('captain_token', jsonData.data.token);",
+                                            "    }",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"phone\": \"0501234567\",\n    \"otp\": \"1234\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/auth/captain/login",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "captain", "login"]
+                                },
+                                "description": "Verify OTP and get access token.\n\n**Note:** Validates that user has captain role\n\n**Required Fields:**\n- `phone`: Captain agent phone number\n- `otp`: One-time password"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Me",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{captain_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/auth/captain/me",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "captain", "me"]
+                                },
+                                "description": "Get current authenticated captain agent information."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Logout",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{captain_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/auth/captain/logout",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["auth", "captain", "logout"]
+                                },
+                                "description": "Invalidate current captain agent token."
+                            },
+                            "response": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Store App",
+            "item": [
+                {
+                    "name": "Profile",
+                    "item": [
+                        {
+                            "name": "Get Profile",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/profile",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "profile"]
+                                },
+                                "description": "Get customer profile information."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Profile",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"first_name\": \"احمد\",\n    \"last_name\": \"علي\",\n    \"email\": \"ahmed@example.com\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/store/profile/update",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "profile", "update"]
+                                },
+                                "description": "# Update Customer Profile\n\n## Update Profile\n\nUpdates the authenticated customer's profile information.\n\n**Note:** This endpoint also serves as \"Complete Registration\" for new customers. If the customer's name is empty or \"Guest\", `first_name` becomes required.\n\n### Request\n\n```\nPUT /api/v1/store/profile\n\n ```\n\n### Body Parameters\n\n| Parameter | Type | Required |\n| --- | --- | --- |\n| first_name | string | Conditional\\* |\n| middle_name | string | No |\n| last_name | string | No |\n| email | string | No |\n\n`_first_name_` _is \\*_required** if customer has no name or name is \"Guest\" (new registration flow)\n\n### Example Request\n\n``` json\n{\n    \"first_name\": \"Ahmed\",\n    \"last_name\": \"Mohammed\",\n    \"email\": \"ahmed@example.com\"\n}\n\n ```"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Products",
+                    "item": [
+                        {
+                            "name": "List Products",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/products?page=1&per_page=15",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "products"],
+                                    "query": [
+                                        {
+                                            "key": "search",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "category_id",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "brand_id",
+                                            "value": "2",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "collection_id",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "is_featured",
+                                            "value": "true",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "is_latest",
+                                            "value": "true",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "min_price",
+                                            "value": "50",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "max_price",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "sort",
+                                            "value": "price",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "order",
+                                            "value": "desc",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        }
+                                    ]
+                                },
+                                "description": "# Get Products\n\n## 🔗 Endpoint\n\n```\nGET /api/v1/store/products\n\n ```\n\n---\n\n## 🎛️ Query Parameters\n\n| Parameter | Type | Default | Description |\n| --- | --- | --- | --- |\n| `search` | string | \\- | 🔍 Search in product title and description |\n| `category_id` | integer | \\- | Filter by category ID |\n| `brand_id` | integer | \\- | Filter by brand ID |\n| `collection_id` | integer | \\- | Filter by collection ID |\n| `is_featured` | boolean | \\- | ⭐ Filter featured products only |\n| `is_latest` | boolean | \\- | 🆕 Filter latest products only |\n| `min_price` | numeric | \\- | 💰 Minimum price filter |\n| `max_price` | numeric | \\- | 💰 Maximum price filter |\n| `sort` | string | `created_at` | Sort field: `price`, `title`, `created_at` |\n| `order` | string | `asc` | Sort direction: `asc`, `desc` |\n| `per_page` | integer | `15` | Items per page |\n| `page` | integer | `1` | Page number |\n\n---\n\n## 📝 Usage Examples\n\n### Basic Requests\n\n``` http\n# Get all products (paginated)\nGET /products\n# Search products\nGET /products?search=برجر\n# Get products by category\nGET /products?category_id=1\n# Get products by brand\nGET /products?brand_id=2\n\n ```\n\n### Featured & Latest\n\n``` http\n# Get featured products\nGET /products?is_featured=true\n# Get latest products\nGET /products?is_latest=true\n# Get featured products from specific category\nGET /products?is_featured=true&category_id=1\n\n ```\n\n### Price Filtering\n\n``` http\n# Products under 100 SAR\nGET /products?max_price=100\n# Products between 50-200 SAR\nGET /products?min_price=50&max_price=200\n\n ```\n\n### Sorting\n\n``` http\n# Sort by price (low to high)\nGET /products?sort=price&order=asc\n# Sort by price (high to low)\nGET /products?sort=price&order=desc\n# Sort by newest\nGET /products?sort=created_at&order=desc\n\n ```\n\n### Combined Filters\n\n``` http\n# Featured products in category, sorted by price\nGET /products?category_id=1&is_featured=true&sort=price&order=asc\n# Search with price range\nGET /products?search=قهوة&min_price=10&max_price=50\n# Full filter example\nGET /products?category_id=1&brand_id=2&min_price=50&max_price=500&sort=price&order=asc&per_page=20\n\n ```\n\n---\n\n## ✅ Response Format\n\n``` json\n{\n    \"success\": true,\n    \"message\": \"Products retrieved successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"title\": \"برجر كلاسيكي\",\n            \"price\": 25.00,\n            \"sale_price\": null,\n            \"cover_image_url\": \"https://...\",\n            \"is_available\": true,\n            \"type\": \"FOOD\"\n        }\n    ],\n    \"meta\": {\n        \"current_page\": 1,\n        \"last_page\": 5,\n        \"per_page\": 15,\n        \"total\": 72\n    }\n}\n\n ```\n\n---\n\n## 💡 Best Practices\n\n1. **Use** **`is_featured=true`** for homepage featured section\n    \n2. **Use** **`is_latest=true`** for \"New Arrivals\" section\n    \n3. **Combine filters** for advanced search pages\n    \n4. **Use pagination** (`per_page`, `page`) for large result sets\n    \n5. **Cache responses** on client side when possible\n    \n\n---"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Product Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/products/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "products", "1"]
+                                },
+                                "description": "Get product details with variants, addons, and custom fields.\n\n**URL Parameters:**\n- `id`: Product ID"
+                            },
+                            "response": []
+                        }
+                    ],
+                    "description": "---"
+                },
+                {
+                    "name": "Categories",
+                    "item": [
+                        {
+                            "name": "List Categories",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/categories?tree=true",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "categories"],
+                                    "query": [
+                                        {
+                                            "key": "tree",
+                                            "value": "true"
+                                        }
+                                    ]
+                                },
+                                "description": "Get all categories with children.\n\n**URL Parameters:**\n\n- tree: Boolean (optional)"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Category Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/categories/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "categories", "1"]
+                                },
+                                "description": "Get category details.\n\n**URL Parameters:**\n- `id`: Category ID"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Category Products",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/categories/1/products",
+                                    "host": ["{{base_url}}"],
+                                    "path": [
+                                        "store",
+                                        "categories",
+                                        "1",
+                                        "products"
+                                    ]
+                                },
+                                "description": "Get products by category.\n\n**URL Parameters:**\n- `categoryId`: Category ID"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Brands",
+                    "item": [
+                        {
+                            "name": "List Brands",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/brands",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "brands"]
+                                },
+                                "description": "Get all brands."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Brand Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/brands/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "brands", "1"]
+                                },
+                                "description": "Get brand details.\n\n**URL Parameters:**\n- `id`: Brand ID"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Collections",
+                    "item": [
+                        {
+                            "name": "List Collections",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/collections",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "collections"]
+                                },
+                                "description": "Get all collections (offers, special groups)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Collection Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/collections/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "collections", "1"]
+                                },
+                                "description": "Get collection with products.\n\n**URL Parameters:**\n- `id`: Collection ID"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Orders",
+                    "item": [
+                        {
+                            "name": "List Orders",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/orders?page=1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "orders"],
+                                    "query": [
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        }
+                                    ]
+                                },
+                                "description": "Get customer orders (paginated)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Order Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/orders/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "orders", "1"]
+                                },
+                                "description": "Get order details.\n\n**URL Parameters:**\n- `id`: Order ID"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Create Order",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"items\": [\n        {\n            \"product_id\": 1,\n            \"quantity\": 2,\n            \"variant_id\": null,\n            \"addons\": [\n                {\"addon_item_id\": 1, \"quantity\": 1}\n            ],\n            \"custom_fields\": {\n                \"recipient_name\": \"محمد\",\n                \"gift_message\": \"عيد ميلاد سعيد\"\n            },\n            \"notes\": \"بدون بصل\"\n        }\n    ],\n    \"address_id\": 1,\n    \"payment_method\": \"cash\",\n    \"coupon_code\": null,\n    \"notes\": \"الرجاء الاتصال قبل التوصيل\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/store/orders",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "orders"]
+                                },
+                                "description": "Create new order.\n\n**Required Fields:**\n- `items`: Array of order items\n  - `product_id`: Product ID (required)\n  - `quantity`: Quantity (required)\n  - `variant_id`: Variant ID (optional)\n  - `addons`: Array of addon items (optional)\n  - `custom_fields`: Custom field values (optional)\n  - `notes`: Item notes (optional)\n- `address_id`: Captain address ID\n- `payment_method`: cash, card, wallet\n\n**Optional Fields:**\n- `coupon_code`: Discount coupon\n- `notes`: Order notes"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Branches",
+                    "item": [
+                        {
+                            "name": "Get Branches",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/branches",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "branches"],
+                                    "query": [
+                                        {
+                                            "key": "type",
+                                            "value": "1",
+                                            "description": "1: Branch, 2: Warehouse, 3: Kitchen",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "search",
+                                            "value": "الرياض",
+                                            "description": "Search by name",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                "description": "Get all active branches with optional filtering.\n\n**Examples:**\n```\nGET /branches              # All branches\nGET /branches?type=1       # Branches only (no warehouses/kitchens)\nGET /branches?search=الرياض # Search by name\n```"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Branch Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/store/branches/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["store", "branches", "1"]
+                                },
+                                "description": "Get full details of a specific branch including address and working hours."
+                            },
+                            "response": []
+                        }
+                    ],
+                    "description": "# 🏢 Branches API\n\nAPI endpoints for retrieving store branches.\n\n## Endpoint\n\n```\nGET /api/v1/{app}/branches\n\n ```\n\nWhere `{app}` is: `store`, `cashier`, or `captain`\n\n## Query Parameters\n\n| Parameter | Type | Description |\n| --- | --- | --- |\n| `type` | int | Filter by type: 1=Branch, 2=Warehouse, 3=Kitchen |\n| `search` | string | Search by branch name |\n\n## Response (List)\n\n``` json\n{\n    \"success\": true,\n    \"message\": \"Branches retrieved successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"name\": \"فرع الرياض\",\n            \"type\": 1,\n            \"type_label\": \"فرع\",\n            \"image_url\": \"https://...\",\n            \"status\": 1\n        }\n    ]\n}\n\n ```\n\n## Response (Details)\n\n``` json\n{\n    \"success\": true,\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"فرع الرياض\",\n        \"type\": 1,\n        \"type_label\": \"فرع\",\n        \"description\": \"الفرع الرئيسي\",\n        \"image_url\": \"https://...\",\n        \"status\": 1,\n        \"support_channels\": [...],\n        \"address\": {...},\n        \"working_hours\": {...}\n    }\n}\n\n ```"
+                },
+                {
+                    "name": "Config",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "X-Store-Key",
+                                "value": "{{store_key}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/store/config",
+                            "host": ["{{base_url}}"],
+                            "path": ["store", "config"]
+                        },
+                        "description": "Get store configuration including theme, app version, and home sections."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Settings Params",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "X-Store-Key",
+                                "value": "{{store_key}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{customer_token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/store/settings/params",
+                            "host": ["{{base_url}}"],
+                            "path": ["store", "settings", "params"]
+                        },
+                        "description": "Get static params (enums).\n\n**Returns:**\n- `user_roles`: Available user roles\n- `pid_types`: ID types\n- `nationalities`: Available nationalities\n- `product_types`: Product types with shipping/digital flags"
+                    },
+                    "response": []
+                }
+            ],
+            "auth": {
+                "type": "bearer",
+                "bearer": [
+                    {
+                        "key": "token",
+                        "value": "{{customer_token}}",
+                        "type": "string"
+                    }
+                ]
+            },
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {},
+                        "exec": [""]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {},
+                        "exec": [""]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Cashier App",
+            "item": [
+                {
+                    "name": "Profile",
+                    "item": [
+                        {
+                            "name": "Update Profile",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{cashier_token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"first_name\": \"Mohammed\",\n    \"last_name\": \"Ahmed\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/cashier/profile/update",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["cashier", "profile", "update"]
+                                },
+                                "description": "Update cashier profile."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Products",
+                    "item": [
+                        {
+                            "name": "List Products",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/cashier/products?page=1&per_page=15",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["cashier", "products"],
+                                    "query": [
+                                        {
+                                            "key": "search",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "category_id",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "brand_id",
+                                            "value": "2",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "collection_id",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "is_featured",
+                                            "value": "true",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "is_latest",
+                                            "value": "true",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "min_price",
+                                            "value": "50",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "max_price",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "sort",
+                                            "value": "price",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "order",
+                                            "value": "desc",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        }
+                                    ]
+                                },
+                                "description": "# Get Products\n\n## 🔗 Endpoint\n\n```\nGET /api/v1/cashier/products\n\n ```\n\n---\n\n## 🎛️ Query Parameters\n\n| Parameter | Type | Default | Description |\n| --- | --- | --- | --- |\n| `search` | string | \\- | 🔍 Search in product title and description |\n| `category_id` | integer | \\- | Filter by category ID |\n| `brand_id` | integer | \\- | Filter by brand ID |\n| `collection_id` | integer | \\- | Filter by collection ID |\n| `is_featured` | boolean | \\- | ⭐ Filter featured products only |\n| `is_latest` | boolean | \\- | 🆕 Filter latest products only |\n| `min_price` | numeric | \\- | 💰 Minimum price filter |\n| `max_price` | numeric | \\- | 💰 Maximum price filter |\n| `sort` | string | `created_at` | Sort field: `price`, `title`, `created_at` |\n| `order` | string | `asc` | Sort direction: `asc`, `desc` |\n| `per_page` | integer | `15` | Items per page |\n| `page` | integer | `1` | Page number |\n\n---\n\n## 📝 Usage Examples\n\n### Basic Requests\n\n``` http\n# Get all products (paginated)\nGET /products\n# Search products\nGET /products?search=برجر\n# Get products by category\nGET /products?category_id=1\n# Get products by brand\nGET /products?brand_id=2\n\n ```\n\n### Featured & Latest\n\n``` http\n# Get featured products\nGET /products?is_featured=true\n# Get latest products\nGET /products?is_latest=true\n# Get featured products from specific category\nGET /products?is_featured=true&category_id=1\n\n ```\n\n### Price Filtering\n\n``` http\n# Products under 100 SAR\nGET /products?max_price=100\n# Products between 50-200 SAR\nGET /products?min_price=50&max_price=200\n\n ```\n\n### Sorting\n\n``` http\n# Sort by price (low to high)\nGET /products?sort=price&order=asc\n# Sort by price (high to low)\nGET /products?sort=price&order=desc\n# Sort by newest\nGET /products?sort=created_at&order=desc\n\n ```\n\n### Combined Filters\n\n``` http\n# Featured products in category, sorted by price\nGET /products?category_id=1&is_featured=true&sort=price&order=asc\n# Search with price range\nGET /products?search=قهوة&min_price=10&max_price=50\n# Full filter example\nGET /products?category_id=1&brand_id=2&min_price=50&max_price=500&sort=price&order=asc&per_page=20\n\n ```\n\n---\n\n## ✅ Response Format\n\n``` json\n{\n    \"success\": true,\n    \"message\": \"Products retrieved successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"title\": \"برجر كلاسيكي\",\n            \"price\": 25.00,\n            \"sale_price\": null,\n            \"cover_image_url\": \"https://...\",\n            \"is_available\": true,\n            \"type\": \"FOOD\"\n        }\n    ],\n    \"meta\": {\n        \"current_page\": 1,\n        \"last_page\": 5,\n        \"per_page\": 15,\n        \"total\": 72\n    }\n}\n\n ```\n\n---\n\n## 💡 Best Practices\n\n1. **Use** **`is_featured=true`** for homepage featured section\n    \n2. **Use** **`is_latest=true`** for \"New Arrivals\" section\n    \n3. **Combine filters** for advanced search pages\n    \n4. **Use pagination** (`per_page`, `page`) for large result sets\n    \n5. **Cache responses** on client side when possible\n    \n\n---"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Product Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{cashier_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/cashier/products/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["cashier", "products", "1"]
+                                },
+                                "description": "Get product details.\n\n**URL Parameters:**\n- `id`: Product ID"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Categories",
+                    "item": [
+                        {
+                            "name": "List Categories",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{cashier_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/cashier/categories",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["cashier", "categories"]
+                                },
+                                "description": "# Get all categories.\n\n## Parameters\n\n```\n# Flat list (للـ dropdowns, filters)\nGET /categories\n# Tree structure (للـ navigation menu)\nGET /categories?tree=true\n\n ```\n\n```\n# Get root categories only\nGET /categories?parent_id=null\n# Get children of category 5\nGET /categories?parent_id=5\n\n ```"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Category Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{cashier_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/cashier/categories/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["cashier", "categories", "1"]
+                                },
+                                "description": "Get category details."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Orders",
+                    "item": [
+                        {
+                            "name": "List Orders",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{cashier_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/cashier/orders",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["cashier", "orders"]
+                                },
+                                "description": "Get all orders."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Order Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{cashier_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/cashier/orders/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["cashier", "orders", "1"]
+                                },
+                                "description": "Get order details."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Order",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{cashier_token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"status\": \"processing\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/cashier/orders/1/update",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["cashier", "orders", "1", "update"]
+                                },
+                                "description": "Update order.\n\n**Fields:**\n- `status`: Order status"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Branches",
+                    "item": [
+                        {
+                            "name": "Get Branches",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Tenant",
+                                        "value": "{{tenant_key}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/store/branches",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "store", "branches"],
+                                    "query": [
+                                        {
+                                            "key": "type",
+                                            "value": "1",
+                                            "description": "1: Branch, 2: Warehouse, 3: Kitchen",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "search",
+                                            "value": "الرياض",
+                                            "description": "Search by name",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                "description": "Get all active branches with optional filtering.\n\n**Examples:**\n```\nGET /branches              # All branches\nGET /branches?type=1       # Branches only (no warehouses/kitchens)\nGET /branches?search=الرياض # Search by name\n```"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Branch Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Tenant",
+                                        "value": "{{tenant_key}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/store/branches/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "store",
+                                        "branches",
+                                        "1"
+                                    ]
+                                },
+                                "description": "Get full details of a specific branch including address and working hours."
+                            },
+                            "response": []
+                        }
+                    ],
+                    "description": "# 🏢 Branches API\n\nAPI endpoints for retrieving store branches.\n\n## Endpoint\n\n```\nGET /api/v1/{app}/branches\n\n ```\n\nWhere `{app}` is: `store`, `cashier`, or `captain`\n\n## Query Parameters\n\n| Parameter | Type | Description |\n| --- | --- | --- |\n| `type` | int | Filter by type: 1=Branch, 2=Warehouse, 3=Kitchen |\n| `search` | string | Search by branch name |\n\n## Response (List)\n\n``` json\n{\n    \"success\": true,\n    \"message\": \"Branches retrieved successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"name\": \"فرع الرياض\",\n            \"type\": 1,\n            \"type_label\": \"فرع\",\n            \"image_url\": \"https://...\",\n            \"status\": 1\n        }\n    ]\n}\n\n ```\n\n## Response (Details)\n\n``` json\n{\n    \"success\": true,\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"فرع الرياض\",\n        \"type\": 1,\n        \"type_label\": \"فرع\",\n        \"description\": \"الفرع الرئيسي\",\n        \"image_url\": \"https://...\",\n        \"status\": 1,\n        \"support_channels\": [...],\n        \"address\": {...},\n        \"working_hours\": {...}\n    }\n}\n\n ```"
+                },
+                {
+                    "name": "Dashboard",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "X-Store-Key",
+                                "value": "{{store_key}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{cashier_token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/cashier/dashboard",
+                            "host": ["{{base_url}}"],
+                            "path": ["cashier", "dashboard"]
+                        },
+                        "description": "Get dashboard analytics."
+                    },
+                    "response": []
+                }
+            ],
+            "auth": {
+                "type": "bearer",
+                "bearer": [
+                    {
+                        "key": "token",
+                        "value": "{{cashier_token}}",
+                        "type": "string"
+                    }
+                ]
+            },
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {},
+                        "exec": [""]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {},
+                        "exec": [""]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Captain App",
+            "item": [
+                {
+                    "name": "Profile",
+                    "item": [
+                        {
+                            "name": "Get Profile",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{captain_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/captain/profile",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["captain", "profile"]
+                                },
+                                "description": "Get captain agent profile."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Profile",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{captain_token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"first_name\": \"Ali\",\n    \"last_name\": \"Hassan\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/captain/profile/update",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["captain", "profile", "update"]
+                                },
+                                "description": "Update captain agent profile."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Orders",
+                    "item": [
+                        {
+                            "name": "List Orders",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{captain_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/captain/orders",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["captain", "orders"]
+                                },
+                                "description": "Get assigned orders."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Order Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{captain_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/captain/orders/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["captain", "orders", "1"]
+                                },
+                                "description": "Get order details."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Order Status",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "X-Store-Key",
+                                        "value": "{{store_key}}"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{captain_token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"status\": \"delivered\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/captain/orders/1/status",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["captain", "orders", "1", "status"]
+                                },
+                                "description": "Update order captain status.\n\n**Fields:**\n- `status`: picked_up, on_the_way, delivered"
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Update Location",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-Store-Key",
+                                "value": "{{store_key}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{captain_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"latitude\": 24.7136,\n    \"longitude\": 46.6753\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/captain/location",
+                            "host": ["{{base_url}}"],
+                            "path": ["captain", "location"]
+                        },
+                        "description": "Update captain agent current location.\n\n**Required Fields:**\n- `latitude`: Current latitude\n- `longitude`: Current longitude"
+                    },
+                    "response": []
+                }
+            ],
+            "auth": {
+                "type": "bearer",
+                "bearer": [
+                    {
+                        "key": "token",
+                        "value": "{{captain_token}}",
+                        "type": "string"
+                    }
+                ]
+            },
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {},
+                        "exec": [""]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {},
+                        "exec": [""]
+                    }
+                }
+            ]
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [""]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [""]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "{{base_url}}"
+        },
+        {
+            "key": "store_key",
+            "value": "37858998-3343-4293-98ac-1e28cc0f9e27"
+        },
+        {
+            "key": "base_url",
+            "value": "https://store-api.libro-shop.com/api/v1",
+            "disabled": true
+        },
+        {
+            "value": ""
+        }
+    ]
 }

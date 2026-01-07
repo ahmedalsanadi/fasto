@@ -37,7 +37,8 @@ export default function NotFound() {
             {/* Action Button */}
             <Link
                 href="/"
-                className="inline-flex items-center justify-center px-10 py-4 bg-[#B44734] hover:bg-[#9a3c2c] text-white text-lg font-bold rounded-2xl transition-all shadow-[0_8px_30px_rgba(180,71,52,0.3)] hover:shadow-[0_12px_40px_rgba(180,71,52,0.4)] hover:-translate-y-1 active:scale-95">
+                className="inline-flex items-center justify-center px-10 py-4 bg-[#B44734] hover:bg-[#9a3c2c] text-white text-lg font-bold rounded-2xl transition-all shadow-[0_8px_30px_rgba(180,71,52,0.3)] hover:shadow-[0_12px_40px_rgba(180,71,52,0.4)] hover:-translate-y-1 active:scale-95"
+            >
                 {t('backHome')}
             </Link>
 

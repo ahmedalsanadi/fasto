@@ -1,12 +1,11 @@
-//src/lib/metadata.ts
 import { getTranslations } from 'next-intl/server';
-import { getStoreConfig } from './api/config';
+import { getStoreConfig } from '@/services/store-config';
 import { Metadata } from 'next';
-import { siteConfig } from '../config/site';
+import { siteConfig } from '@/config/site';
+import { StoreConfig } from '@/services/types';
 
 /**
  * Generates base metadata for the store.
- * Centralizes duplicate logic from layouts and pages.
  */
 export async function generateStoreMetadata(locale: string): Promise<Metadata> {
     const t = await getTranslations({ locale, namespace: 'Metadata' });
@@ -29,14 +28,7 @@ export async function generateStoreMetadata(locale: string): Promise<Metadata> {
             description,
             url: siteConfig.url,
             siteName: title,
-            images: [
-                {
-                    url: logoUrl,
-                    width: 1200,
-                    height: 630,
-                    alt: title,
-                },
-            ],
+            images: [{ url: logoUrl, width: 1200, height: 630, alt: title }],
             locale: locale,
             type: 'website',
         },
@@ -52,6 +44,32 @@ export async function generateStoreMetadata(locale: string): Promise<Metadata> {
                 en: `${siteConfig.url}/en`,
                 ar: `${siteConfig.url}/ar`,
             },
+        },
+    };
+}
+
+/**
+ * Generates JSON-LD for LocalBusiness.
+ */
+export function generateStructuredData(
+    storeConfig: StoreConfig | null,
+    locale: string,
+    domain: string,
+) {
+    if (!storeConfig) return null;
+
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'LocalBusiness',
+        name: storeConfig.store.name,
+        description: storeConfig.store.slogan,
+        url: domain,
+        logo: storeConfig.store.logo_url,
+        image: storeConfig.store.logo_url,
+        inLanguage: locale,
+        address: {
+            '@type': 'PostalAddress',
+            addressCountry: 'SA',
         },
     };
 }

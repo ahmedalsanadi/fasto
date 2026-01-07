@@ -3,21 +3,21 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useCartStore } from '@/store/useCartStore';
-import { Link, useRouter } from '@/i18n/navigation';
+import { useCartStore } from '@/store/use-cart-store';
+import { Link } from '@/i18n/navigation';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
-import CurrencySymbol from '@/components/ui/CurrencySymbol';
+import CurrencySymbol from '@/components/ui/currency-symbol';
 
 const CartPage = () => {
     const t = useTranslations('Cart');
     const { items, updateQuantity, removeItem, getTotalPrice, getTotalItems } =
         useCartStore();
-    const router = useRouter();
     const [isMounted, setIsMounted] = useState(false);
 
     // Prevent hydration mismatch
     useEffect(() => {
-        setIsMounted(true);
+        const frame = requestAnimationFrame(() => setIsMounted(true));
+        return () => cancelAnimationFrame(frame);
     }, []);
 
     if (!isMounted) return null;
@@ -36,7 +36,8 @@ const CartPage = () => {
                 </p>
                 <Link
                     href="/products"
-                    className="bg-[#B44734] text-white font-bold py-4 px-10 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all active:scale-95">
+                    className="bg-[#B44734] text-white font-bold py-4 px-10 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all active:scale-95"
+                >
                     {t('backToMenu')}
                 </Link>
             </div>
@@ -61,7 +62,8 @@ const CartPage = () => {
                     {items.map((item) => (
                         <div
                             key={item.id}
-                            className="bg-white border border-gray-100 p-4 md:p-6 rounded-3xl flex items-center gap-4 md:gap-6 shadow-sm hover:shadow-md transition-shadow">
+                            className="bg-white border border-gray-100 p-4 md:p-6 rounded-3xl flex items-center gap-4 md:gap-6 shadow-sm hover:shadow-md transition-shadow"
+                        >
                             <div className="relative w-20 h-20 md:w-28 md:h-28 bg-gray-50 rounded-2xl overflow-hidden shrink-0">
                                 <Image
                                     src={item.image}
@@ -98,7 +100,8 @@ const CartPage = () => {
                                                     item.quantity - 1,
                                                 )
                                             }
-                                            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-[#B44734] transition-colors">
+                                            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-[#B44734] transition-colors"
+                                        >
                                             <Minus size={16} />
                                         </button>
                                         <span className="w-10 text-center font-bold text-gray-900">
@@ -111,14 +114,16 @@ const CartPage = () => {
                                                     item.quantity + 1,
                                                 )
                                             }
-                                            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-[#B44734] transition-colors">
+                                            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-[#B44734] transition-colors"
+                                        >
                                             <Plus size={16} />
                                         </button>
                                     </div>
 
                                     <button
                                         onClick={() => removeItem(item.id)}
-                                        className="text-gray-300 hover:text-red-500 transition-colors p-2">
+                                        className="text-gray-300 hover:text-red-500 transition-colors p-2"
+                                    >
                                         <Trash2 size={20} />
                                     </button>
                                 </div>

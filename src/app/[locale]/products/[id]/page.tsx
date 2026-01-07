@@ -1,6 +1,6 @@
-import { getProductById } from '@/lib/mock-data';
+import { getProductById } from '@/data/mock';
 import { notFound } from 'next/navigation';
-import ProductDetails from '@/components/pages/products/ProductDetails';
+import ProductDetails from '@/components/pages/products/product-details';
 import { Metadata } from 'next';
 
 interface Props {

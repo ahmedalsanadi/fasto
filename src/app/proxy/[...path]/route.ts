@@ -1,21 +1,14 @@
 // src/app/proxy/[...path]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getBaseHeaders, isPathForbidden } from '@/lib/api/utils';
-
-function getApiUrl(): string {
-    return (
-        process.env.NEXT_PUBLIC_API_URL ||
-        'https://store-api.libro-shop.com/api/v1'
-    );
-}
+import { getBaseHeaders, isPathForbidden } from '@/services/utils';
+import { env } from '@/config/env';
 
 async function handleRequest(
     request: NextRequest,
     params: Promise<{ path: string[] }>,
     method: string,
 ) {
-    const API_URL = getApiUrl();
     const { path } = await params;
 
     if (isPathForbidden(path)) {
@@ -26,7 +19,7 @@ async function handleRequest(
     const searchParams = request.nextUrl.searchParams.toString();
     const cookieStore = await cookies();
 
-    // Prepare Headers
+    // Prepare Headers using Shared Logic
     const headers = getBaseHeaders(
         cookieStore.get('NEXT_LOCALE')?.value ||
             request.headers.get('Accept-Language') ||
@@ -34,7 +27,7 @@ async function handleRequest(
         request.headers.get('Content-Type'),
     );
 
-    // Dynamic Auth (if user is logged in via cookie)
+    // Client-specific Override (e.g. Session Token)
     const clientAccessToken = cookieStore.get('accessToken')?.value;
     if (clientAccessToken) {
         headers.set('Authorization', `Bearer ${clientAccessToken}`);
@@ -45,21 +38,18 @@ async function handleRequest(
         try {
             body = await request.arrayBuffer();
         } catch {
-            /* Ignore */
+            /* Suppress */
         }
     }
 
     try {
         const response = await fetch(
-            `${API_URL}${backendPath}${searchParams ? `?${searchParams}` : ''}`,
-            {
-                method,
-                headers,
-                body,
-            },
+            `${env.apiUrl}${backendPath}${
+                searchParams ? `?${searchParams}` : ''
+            }`,
+            { method, headers, body },
         );
 
-        // Forward status and body
         if (response.status === 204 || response.status === 304) {
             return new NextResponse(null, { status: response.status });
         }
@@ -69,7 +59,6 @@ async function handleRequest(
             status: response.status,
         });
 
-        // Forward essential headers
         ['Content-Type', 'Cache-Control', 'ETag'].forEach((h) => {
             const val = response.headers.get(h);
             if (val) nextResponse.headers.set(h, val);
@@ -85,7 +74,6 @@ async function handleRequest(
     }
 }
 
-// Handler Factory to avoid repetition
 const createMethod =
     (method: string) =>
     (req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) =>
