@@ -60,4 +60,5 @@ async function PromotionsSectionFetcher({
         meta: {} as any,
     }));
     return <PromotionsSection initialProducts={response?.data || []} />;
+    
 }
