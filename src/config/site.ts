@@ -1,3 +1,4 @@
+//src/config/site.ts
 export const siteConfig = {
     name: 'Fasto',
     description: 'Fasto is a restaurant landing page',

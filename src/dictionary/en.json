@@ -5,6 +5,7 @@
   },
   "Metadata": {
     "title": "Fasto - Your Favorite Restaurant",
+    "homeTitle": "Home",
     "description": "Fasto is a modern restaurant landing page template.",
     "keywords": "Next.js, i18n, restaurant, Fasto"
   },
@@ -110,6 +111,7 @@
     "currency": "SAR",
     "share": "Share",
     "favorite": "Favorite",
+    "all": "All",
     "products": "Products",
     "home": "Home",
     "description": "Explore Fasto's diverse menu, from delicious pizzas and mouth-watering burgers to sweets and refreshing drinks. Order now for an unforgettable taste."

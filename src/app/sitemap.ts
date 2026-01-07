@@ -1,3 +1,4 @@
+//src/app/sitemap.ts
 import { MetadataRoute } from 'next';
 import { routing } from '@/i18n/routing';
 import { siteConfig } from '../config/site';

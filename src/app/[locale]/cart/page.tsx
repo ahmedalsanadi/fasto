@@ -65,7 +65,7 @@ const CartPage = () => {
                             <div className="relative w-20 h-20 md:w-28 md:h-28 bg-gray-50 rounded-2xl overflow-hidden shrink-0">
                                 <Image
                                     src={item.image}
-                                    alt={item.name}
+                                    alt={item.name || ''}
                                     fill
                                     className="object-contain p-2"
                                 />

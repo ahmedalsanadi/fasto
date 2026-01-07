@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { Heart, Plus } from 'lucide-react';
 import CurrencySymbol from './CurrencySymbol';
@@ -32,6 +32,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
     onAddToCartClick,
     onClick,
 }) => {
+    const [hasError, setHasError] = useState(false);
+    const fallbackImage = '/images/svgs/logo-icon.svg';
+
     return (
         <div
             onClick={onClick}
@@ -54,11 +57,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 {/* Product Image */}
                 <div className="relative w-full aspect-square mb-6 group-hover:scale-105 transition-transform duration-500">
                     <Image
-                        src={image}
-                        alt={name}
+                        src={hasError ? fallbackImage : image}
+                        alt={name || ''}
                         fill
-                        className="object-contain drop-shadow-xl"
+                        className={`object-contain drop-shadow-xl ${
+                            hasError ? 'opacity-40 grayscale p-8' : ''
+                        }`}
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        onError={() => setHasError(true)}
                     />
                 </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { LayoutGrid } from 'lucide-react';
 
@@ -21,6 +21,9 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
     variant = 'default',
     onClick,
 }) => {
+    const [hasError, setHasError] = useState(false);
+    const fallbackImage = '/images/svgs/logo-icon.svg';
+
     if (variant === 'circular') {
         return (
             <div
@@ -36,10 +39,13 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
                     {image ? (
                         <div className="relative w-full h-full">
                             <Image
-                                src={image}
-                                alt={label}
+                                src={hasError ? fallbackImage : image}
+                                alt={label || ''}
                                 fill
-                                className="object-cover rounded-full"
+                                className={`object-cover rounded-full ${
+                                    hasError ? 'p-2 opacity-50' : ''
+                                }`}
+                                onError={() => setHasError(true)}
                             />
                         </div>
                     ) : (
@@ -99,10 +105,13 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
                     <>
                         <div className="relative w-10 h-10 md:w-14 md:h-14">
                             <Image
-                                src={image || ''}
-                                alt={label}
+                                src={image && !hasError ? image : fallbackImage}
+                                alt={label || ''}
                                 fill
-                                className="object-contain"
+                                className={`object-contain ${
+                                    hasError ? 'opacity-40 grayscale p-1' : ''
+                                }`}
+                                onError={() => setHasError(true)}
                             />
                         </div>
                         <span

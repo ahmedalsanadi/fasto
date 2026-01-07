@@ -1,22 +1,18 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-    CATEGORIES,
-    Category,
-    Product,
-    fetchCategories,
-    fetchProducts,
-} from '@/data/mock-data';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import CategoryTabs from './CategoryTabs';
 import SubCategorySelection from './SubCategorySelection';
 import ProductsGrid from './ProductsGrid';
+import { storeService } from '@/lib/api/services';
+import { Category, Product } from '@/lib/api/types';
 
 interface ProductsContentProps {
     initialCategorySlug?: string;
+    locale?: string;
 }
 
 const ProductsContent = ({ initialCategorySlug }: ProductsContentProps) => {
@@ -24,33 +20,56 @@ const ProductsContent = ({ initialCategorySlug }: ProductsContentProps) => {
     const router = useRouter();
     const pathname = usePathname();
 
-    const initialCategory = useMemo(() => {
-        if (!initialCategorySlug) return CATEGORIES[0];
-        return (
-            CATEGORIES.find((c) => c.slug === initialCategorySlug) ||
-            CATEGORIES[0]
-        );
-    }, [initialCategorySlug]);
-
-    const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
-        initialCategory.id,
-    );
-    const [selectedSubCategoryId, setSelectedSubCategoryId] =
-        useState<string>('');
-
+    // Fetch Categories
     const { data: categories = [], isLoading: categoriesLoading } = useQuery<
         Category[]
     >({
         queryKey: ['categories'],
-        queryFn: fetchCategories,
+        queryFn: () => storeService.getCategories(true),
     });
 
-    const { data: allProducts = [], isLoading: productsLoading } = useQuery<
-        Product[]
-    >({
-        queryKey: ['products'],
-        queryFn: fetchProducts,
+    // Determine initial selected category based on slug
+    const initialCategory = useMemo(() => {
+        if (!initialCategorySlug || categories.length === 0)
+            return { id: 'all' };
+        return (
+            categories.find((c) => c.slug === initialCategorySlug) || {
+                id: 'all',
+            }
+        );
+    }, [initialCategorySlug, categories]);
+
+    const [selectedCategoryId, setSelectedCategoryId] = useState<
+        string | number
+    >(initialCategory.id);
+    const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<
+        string | number
+    >('');
+
+    // Fetch Products based on filters
+    const { data: productsRes, isLoading: productsLoading } = useQuery({
+        queryKey: [
+            'products',
+            {
+                category_id:
+                    selectedSubCategoryId ||
+                    (selectedCategoryId === 'all'
+                        ? undefined
+                        : selectedCategoryId),
+            },
+        ],
+        queryFn: () =>
+            storeService.getProducts({
+                category_id:
+                    selectedSubCategoryId ||
+                    (selectedCategoryId === 'all'
+                        ? undefined
+                        : selectedCategoryId),
+                per_page: 20,
+            }),
     });
+
+    const products = productsRes?.data || [];
 
     const activeCategory = useMemo(
         () => categories.find((c: Category) => c.id === selectedCategoryId),
@@ -62,67 +81,47 @@ const ProductsContent = ({ initialCategorySlug }: ProductsContentProps) => {
         [activeCategory],
     );
 
-    const filteredProducts = useMemo(() => {
-        if (selectedCategoryId === '1' || !selectedCategoryId)
-            return allProducts;
-
-        return allProducts.filter((p: Product) => {
-            const isMainCategoryMatch = p.categoryId === selectedCategoryId;
-            if (!isMainCategoryMatch) return false;
-
-            // If no subcategory is selected, show all in this category
-            if (!selectedSubCategoryId) return true;
-
-            const subCat = subCategories.find(
-                (s: Category) => s.id === selectedSubCategoryId,
-            );
-            if (subCat?.slug === 'all') return true;
-
-            return p.subCategoryId === selectedSubCategoryId;
-        });
-    }, [allProducts, selectedCategoryId, selectedSubCategoryId, subCategories]);
-
-    const handleCategoryChange = (id: string) => {
+    const handleCategoryChange = (id: string | number) => {
         setSelectedCategoryId(id);
+        setSelectedSubCategoryId(''); // Reset subcategory
+
         const category = categories.find((c: Category) => c.id === id);
 
-        // Update URL slug without refreshing
-        if (category && category.id !== '1') {
+        // Update URL slug
+        if (category && category.slug !== 'all') {
             router.replace(`${pathname}?category=${category.slug}`, {
                 scroll: false,
             });
         } else {
             router.replace(pathname, { scroll: false });
         }
-
-        if (category?.children && category.children.length > 0) {
-            // Default to 'All' subcategory if it exists
-            const allSub = category.children.find(
-                (s: Category) => s.slug === 'all',
-            );
-            setSelectedSubCategoryId(allSub?.id || category.children[0].id);
-        } else {
-            setSelectedSubCategoryId('');
-        }
     };
+
+    // Prepare display categories with "All"
+    const displayCategories = useMemo(
+        () => [{ id: 'all', slug: 'all', title: t('all') }, ...categories],
+        [categories, t],
+    );
 
     return (
         <div className="container mx-auto py-8">
             <h1 className="sr-only">{t('products')}</h1>
             <CategoryTabs
-                categories={categories}
+                categories={displayCategories}
                 activeCategoryId={selectedCategoryId}
                 onCategorySelect={handleCategoryChange}
             />
 
-            <SubCategorySelection
-                subCategories={subCategories}
-                activeSubCategoryId={selectedSubCategoryId}
-                onSubCategorySelect={setSelectedSubCategoryId}
-            />
+            {subCategories.length > 0 && (
+                <SubCategorySelection
+                    subCategories={subCategories}
+                    activeSubCategoryId={selectedSubCategoryId}
+                    onSubCategorySelect={setSelectedSubCategoryId}
+                />
+            )}
 
             <ProductsGrid
-                products={filteredProducts}
+                products={products}
                 loading={productsLoading || categoriesLoading}
             />
         </div>

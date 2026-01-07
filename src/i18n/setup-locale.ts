@@ -1,3 +1,4 @@
+//src/i18n/setup-locale.ts
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { hasLocale } from 'next-intl';

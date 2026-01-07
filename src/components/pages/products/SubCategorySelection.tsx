@@ -1,14 +1,11 @@
-'use client';
-
 import React from 'react';
-import { Category } from '@/data/mock-data';
+import { Category } from '@/lib/api/types';
 import CategoryCard from '@/components/ui/CategoryCard';
-import { useTranslations } from 'next-intl';
 
 interface SubCategorySelectionProps {
     subCategories: Category[];
-    activeSubCategoryId: string;
-    onSubCategorySelect: (id: string) => void;
+    activeSubCategoryId: string | number;
+    onSubCategorySelect: (id: string | number) => void;
 }
 
 const SubCategorySelection: React.FC<SubCategorySelectionProps> = ({
@@ -16,9 +13,7 @@ const SubCategorySelection: React.FC<SubCategorySelectionProps> = ({
     activeSubCategoryId,
     onSubCategorySelect,
 }) => {
-    const t = useTranslations('Categories');
-
-    if (subCategories.length === 0) return null;
+    if (!subCategories || subCategories.length === 0) return null;
 
     return (
         <div className="mx-4 mb-10">
@@ -28,8 +23,8 @@ const SubCategorySelection: React.FC<SubCategorySelectionProps> = ({
                         <CategoryCard
                             key={sub.id}
                             variant="circular"
-                            label={t(sub.key)}
-                            image={sub.image}
+                            label={sub.title}
+                            image={sub.image_url}
                             isActive={activeSubCategoryId === sub.id}
                             onClick={() => onSubCategorySelect(sub.id)}
                         />

@@ -1,4 +1,3 @@
-//src/components/pages/landing-page/PromotionsSection.tsx
 'use client';
 
 import React from 'react';

@@ -13,6 +13,23 @@ import {
 } from '../ui/DropdownMenu';
 import React, { useEffect, useState } from 'react';
 
+const CartItemImage = ({ src, alt }: { src: string; alt: string }) => {
+    const [hasError, setHasError] = useState(false);
+    const fallbackImage = '/images/svgs/logo-icon.svg';
+
+    return (
+        <Image
+            src={hasError ? fallbackImage : src}
+            alt={alt || ''}
+            fill
+            className={`object-contain p-1 ${
+                hasError ? 'opacity-40 grayscale p-2' : ''
+            }`}
+            onError={() => setHasError(true)}
+        />
+    );
+};
+
 const CartDropdown = () => {
     const t = useTranslations('Cart');
     const { items, removeItem, getTotalItems, getTotalPrice } = useCartStore();
@@ -65,11 +82,9 @@ const CartDropdown = () => {
                                     key={item.id}
                                     className="flex items-center gap-3 group relative">
                                     <div className="relative w-16 h-16 bg-gray-50 rounded-xl overflow-hidden shrink-0 border border-gray-100">
-                                        <Image
+                                        <CartItemImage
                                             src={item.image}
                                             alt={item.name}
-                                            fill
-                                            className="object-contain p-1"
                                         />
                                     </div>
                                     <div className="flex-1 min-w-0">

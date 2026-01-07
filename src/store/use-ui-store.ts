@@ -1,3 +1,4 @@
+//src/store/use-ui-store.ts
 import { create } from 'zustand';
 
 interface UiState {

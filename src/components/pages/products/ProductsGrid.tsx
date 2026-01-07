@@ -1,7 +1,5 @@
-'use client';
-
 import React from 'react';
-import { Product } from '@/data/mock-data';
+import { Product } from '@/lib/api/types';
 import ProductCard from '@/components/ui/ProductCard';
 import { useTranslations } from 'next-intl';
 import { useCartActions } from '@/hooks/useCartActions';
@@ -28,11 +26,11 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({ products, loading }) => {
         );
     }
 
-    if (!loading && products.length === 0) {
+    if (!loading && (!products || products.length === 0)) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-                <span className="text-lg font-medium">
-                    لا توجد منتجات في هذا القسم حالياً
+                <span className="text-lg font-medium text-center px-4">
+                    {t('noProducts') || 'No products found in this section'}
                 </span>
             </div>
         );
@@ -40,32 +38,50 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({ products, loading }) => {
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 px-4 mb-20">
-            {products.map((product) => (
-                <ProductCard
-                    key={product.id}
-                    name={t(product.nameKey)}
-                    image={product.image}
-                    price={product.price}
-                    oldPrice={product.oldPrice}
-                    href={`/products/${product.id}`}
-                    discountBadge={
-                        product.discountAmount
-                            ? t('save', { amount: product.discountAmount })
-                            : undefined
-                    }
-                    addToCartLabel={t('addToCart')}
-                    onAddToCartClick={() => {
-                        const name = t(product.nameKey);
-                        addToCart({
-                            id: String(product.id),
-                            name,
-                            image: product.image,
-                            price: product.price,
-                            categoryId: product.categoryId,
-                        });
-                    }}
-                />
-            ))}
+            {products.map((product) => {
+                const hasDiscount =
+                    product.sale_price &&
+                    Number(product.sale_price) < Number(product.price);
+                let discountAmount = '';
+                if (hasDiscount) {
+                    const savings =
+                        Number(product.price) - Number(product.sale_price!);
+                    const percentage = Math.round(
+                        (savings / Number(product.price)) * 100,
+                    );
+                    discountAmount = `${percentage}%`;
+                }
+
+                return (
+                    <ProductCard
+                        key={product.id}
+                        name={product.title}
+                        image={product.cover_image_url}
+                        price={product.sale_price || product.price}
+                        oldPrice={hasDiscount ? product.price : undefined}
+                        href={`/products/${product.id}`}
+                        discountBadge={
+                            hasDiscount
+                                ? t('save', { amount: discountAmount })
+                                : undefined
+                        }
+                        addToCartLabel={t('addToCart')}
+                        onAddToCartClick={() => {
+                            addToCart({
+                                id: String(product.id),
+                                name: product.title,
+                                image: product.cover_image_url,
+                                price: Number(
+                                    product.sale_price || product.price,
+                                ),
+                                categoryId: String(
+                                    product.categoryId || 'shop',
+                                ),
+                            });
+                        }}
+                    />
+                );
+            })}
         </div>
     );
 };

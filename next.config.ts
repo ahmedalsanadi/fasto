@@ -10,6 +10,14 @@ const nextConfig: NextConfig = {
                 protocol: 'https',
                 hostname: 'images.unsplash.com',
             },
+            {
+                protocol: 'https',
+                hostname: 'store-api.libro-shop.com',
+            },
+            {
+                protocol: 'https',
+                hostname: 'dashboard.libro-shop.com',
+            },
         ],
     },
 };

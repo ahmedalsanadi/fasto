@@ -7,12 +7,7 @@ import { Metadata } from 'next';
 import { siteConfig } from '@/config/site';
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { getQueryClient } from '@/lib/getQueryClient';
-import {
-    fetchCategories,
-    fetchProducts,
-    CATEGORIES,
-    Category,
-} from '@/data/mock-data';
+import { storeService } from '@/lib/api/services';
 
 export async function generateMetadata({
     params,
@@ -22,16 +17,20 @@ export async function generateMetadata({
     searchParams: Promise<{ category?: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
-    const { category } = await searchParams;
+    const { category: slug } = await searchParams;
     const t = await getTranslations({ locale, namespace: 'Product' });
-    const tc = await getTranslations({ locale, namespace: 'Categories' });
 
     let title = `${t('products')} | ${siteConfig.name}`;
-    if (category) {
-        // Find category name by slug
-        const cat = CATEGORIES.find((c: Category) => c.slug === category);
-        if (cat) {
-            title = `${tc(cat.key)} | ${siteConfig.name}`;
+
+    if (slug) {
+        try {
+            const categories = await storeService.getCategories(true);
+            const cat = categories.find((c) => c.slug === slug);
+            if (cat) {
+                title = `${cat.title} | ${siteConfig.name}`;
+            }
+        } catch (e) {
+            // Silently fall back to default title
         }
     }
 
@@ -40,14 +39,14 @@ export async function generateMetadata({
         description: t('description'),
         alternates: {
             canonical: `${siteConfig.url}/${locale}/products${
-                category ? `?category=${category}` : ''
+                slug ? `?category=${slug}` : ''
             }`,
         },
         openGraph: {
             title,
             description: t('description'),
             url: `${siteConfig.url}/${locale}/products${
-                category ? `?category=${category}` : ''
+                slug ? `?category=${slug}` : ''
             }`,
             type: 'website',
         },
@@ -66,15 +65,19 @@ export default async function ProductsPage({
     const t = await getTranslations({ locale, namespace: 'Product' });
     const queryClient = getQueryClient();
 
-    // Prefetch data on the server
+    // Prefetch data on the server with real service
     await Promise.all([
         queryClient.prefetchQuery({
             queryKey: ['categories'],
-            queryFn: fetchCategories,
+            queryFn: () => storeService.getCategories(true),
         }),
         queryClient.prefetchQuery({
-            queryKey: ['products'],
-            queryFn: fetchProducts,
+            queryKey: ['products', { category_id: categorySlug }],
+            queryFn: () =>
+                storeService.getProducts({
+                    category_id: categorySlug,
+                    per_page: 12,
+                }),
         }),
     ]);
 
@@ -89,7 +92,10 @@ export default async function ProductsPage({
                 <Breadcrumbs items={breadcrumbItems} />
             </div>
             <HydrationBoundary state={dehydrate(queryClient)}>
-                <ProductsContent initialCategorySlug={categorySlug} />
+                <ProductsContent
+                    initialCategorySlug={categorySlug}
+                    locale={locale}
+                />
             </HydrationBoundary>
         </main>
     );
