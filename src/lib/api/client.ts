@@ -1,6 +1,7 @@
-//src/lib/api/client.ts
+// src/lib/api/client.ts
 import { getBaseUrl } from './config';
 import { ApiResponse } from './types';
+import { getBaseHeaders } from './utils';
 
 export class ApiError extends Error {
     constructor(
@@ -24,81 +25,48 @@ export async function fetchLibero<T>(
     const { params, ...init } = options;
     const baseUrl = getBaseUrl();
 
-    // Localization discovery
+    // Context discovery (Smarter locale detection)
     let locale: string | undefined;
-
     if (typeof window === 'undefined') {
         try {
-            // Server-side: use next-intl/server to get the locale
-            // We use dynamic import to avoid bundling this in client-side code
             const { getLocale } = await import('next-intl/server');
             locale = await getLocale();
-        } catch (error) {
-            console.warn('[API Client] Failed to get server locale:', error);
+        } catch {
+            /* Silent */
         }
     } else {
-        // Client-side: use document lang
         locale = document.documentElement.lang;
     }
 
-    // Normalize endpoint (ensure leading slash)
-    const normalizedEndpoint = endpoint.startsWith('/')
-        ? endpoint
-        : `/${endpoint}`;
-
-    // Build URL with query params
-    const url = new URL(`${baseUrl}${normalizedEndpoint}`);
+    const url = new URL(
+        `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`,
+    );
     if (params) {
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-                url.searchParams.append(key, String(value));
-            }
-        });
+        Object.entries(params).forEach(
+            ([k, v]) => v != null && url.searchParams.append(k, String(v)),
+        );
     }
 
-    const headers = new Headers(init.headers);
+    // Use shared header utility
+    const headers = getBaseHeaders(
+        locale,
+        (init.headers as any)?.['Content-Type'],
+    );
 
-    if (locale) {
-        headers.set('Accept-Language', locale);
-    }
-
-    // Server-side header injection
-    if (typeof window === 'undefined') {
-        const storeKey = process.env.LIBERO_API_KEY;
-        const authToken = process.env.LIBERO_AUTH_TOKEN;
-
-        if (storeKey) {
-            headers.set('X-Store-Key', storeKey);
-        }
-        if (authToken) {
-            headers.set('Authorization', `Bearer ${authToken}`);
-        }
-    }
-
-    if (!headers.has('Accept')) {
-        headers.set('Accept', 'application/json');
-    }
-    if (!headers.has('Content-Type') && !(init.body instanceof FormData)) {
-        headers.set('Content-Type', 'application/json');
+    // Merge any additional custom headers
+    if (init.headers) {
+        new Headers(init.headers).forEach((v, k) => headers.set(k, v));
     }
 
     try {
-        const response = await fetch(url.toString(), {
-            ...init,
-            headers,
-        });
-
-        // Handle empty responses
-        if (response.status === 204) {
-            return {} as T;
-        }
+        const response = await fetch(url.toString(), { ...init, headers });
+        if (response.status === 204) return {} as T;
 
         const result: ApiResponse<T> = await response.json();
-
         if (!response.ok || !result.success) {
             throw new ApiError(
                 response.status,
-                result.message || 'An unexpected error occurred',
+                result.message || 'API Error',
                 result.data,
             );
         }
@@ -106,7 +74,6 @@ export async function fetchLibero<T>(
         return result.data;
     } catch (error) {
         if (error instanceof ApiError) throw error;
-
         console.error(`[API Error] ${endpoint}:`, error);
         throw new ApiError(500, 'Network error or server unavailable');
     }

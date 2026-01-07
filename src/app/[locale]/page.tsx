@@ -1,9 +1,12 @@
-//src/app/[locale]/page.tsx
-//landing page
 import LandingPage from '@/components/pages/landing-page/LandingPage';
 import { storeService } from '@/lib/api/services';
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+import { Suspense } from 'react';
+import {
+    CategoriesGridSkeleton,
+    ProductsGridSkeleton,
+} from '@/components/ui/skeletons';
 
 import { generateStoreMetadata } from '@/lib/metadata';
 
@@ -31,9 +34,17 @@ export default async function HomePage() {
     });
 
     return (
-        <LandingPage
-            categoriesPromise={categoriesPromise}
-            productsPromise={featuredProductsPromise}
-        />
+        <Suspense
+            fallback={
+                <div className="container mx-auto px-4 mt-8 space-y-12">
+                    <CategoriesGridSkeleton />
+                    <ProductsGridSkeleton />
+                </div>
+            }>
+            <LandingPage
+                categoriesPromise={categoriesPromise}
+                productsPromise={featuredProductsPromise}
+            />
+        </Suspense>
     );
 }

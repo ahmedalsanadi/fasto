@@ -54,7 +54,6 @@ export default async function RootLayout({
 
     const isArabic = locale === 'ar';
     const messages = await getMessages({ locale });
-    const t = await getTranslations({ locale, namespace: 'Metadata' });
 
     // 1. Fetch Store Config with caching
     const storeConfig = await getStoreConfig();
@@ -116,7 +115,6 @@ export default async function RootLayout({
                                 Please try again later.
                             </p>
                             <button
-                                // @ts-ignore
                                 onClick={() =>
                                     typeof window !== 'undefined' &&
                                     window.location.reload()

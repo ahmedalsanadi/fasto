@@ -21,12 +21,16 @@ interface CartStore {
     clearCart: () => void;
     getTotalItems: () => number;
     getTotalPrice: () => number;
+    _hasHydrated: boolean;
+    setHasHydrated: (state: boolean) => void;
 }
 
 export const useCartStore = create<CartStore>()(
     persist(
         (set, get) => ({
             items: [],
+            _hasHydrated: false,
+            setHasHydrated: (state) => set({ _hasHydrated: state }),
             addItem: (item, quantity = 1) => {
                 const currentItems = get().items;
                 const existingItem = currentItems.find((i) => i.id === item.id);
@@ -75,6 +79,7 @@ export const useCartStore = create<CartStore>()(
         }),
         {
             name: 'fasto-cart-storage',
+            skipHydration: true,
         },
     ),
 );

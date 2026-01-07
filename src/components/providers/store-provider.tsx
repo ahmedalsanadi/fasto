@@ -1,8 +1,14 @@
-//src/components/providers/store-provider.tsx
 'use client';
 
-import React, { createContext, useContext, useEffect } from 'react';
+import React, {
+    createContext,
+    useContext,
+    useLayoutEffect,
+    useEffect,
+} from 'react';
 import { StoreConfig } from '@/lib/api/types';
+import { useCartStore } from '@/store/useCartStore';
+import { isValidColor } from '@/lib/api/utils';
 
 interface StoreContextType {
     config: StoreConfig;
@@ -17,35 +23,44 @@ export function StoreProvider({
     children: React.ReactNode;
     config: StoreConfig;
 }) {
-    // Expertise Note: We use a custom style tag to inject CSS variables.
-    // This is better than inline styles on every component as it keeps the DOM clean
-    // and allows standard CSS class usage (e.g., bg-[var(--primary)]).
-    const themeStyles = `
-    :root {
-      --primary: ${config.theme.primary_color};
-      --secondary: ${config.theme.secondary_color};
-      --primary-foreground: 210 40% 98%;
-      --secondary-foreground: 222.2 47.4% 11.2%;
-    }
-    
-    .primary-bg { background-color: var(--primary); }
-    .primary-text { color: var(--primary); }
-    .secondary-bg { background-color: var(--secondary); }
-    .secondary-text { color: var(--secondary); }
-  `;
+    // Hydrate cart store on mount
+    useEffect(() => {
+        useCartStore.persist.rehydrate();
+        useCartStore.getState().setHasHydrated(true);
+    }, []);
+
+    useLayoutEffect(() => {
+        const root = document.documentElement;
+        const { primary_color: primary, secondary_color: secondary } =
+            config.theme;
+
+        const updateVar = (name: string, val?: string) => {
+            if (val && isValidColor(val)) root.style.setProperty(name, val);
+        };
+
+        updateVar('--primary', primary);
+        updateVar('--secondary', secondary);
+
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta && primary && isValidColor(primary))
+            meta.setAttribute('content', primary);
+
+        return () => {
+            root.style.removeProperty('--primary');
+            root.style.removeProperty('--secondary');
+        };
+    }, [config]);
 
     return (
         <StoreContext.Provider value={{ config }}>
-            <style dangerouslySetInnerHTML={{ __html: themeStyles }} />
             {children}
         </StoreContext.Provider>
     );
 }
 
-export function useStore() {
+export const useStore = () => {
     const context = useContext(StoreContext);
-    if (!context) {
+    if (!context)
         throw new Error('useStore must be used within a StoreProvider');
-    }
     return context;
-}
+};

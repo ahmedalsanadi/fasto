@@ -1,27 +1,5 @@
-//src/lib/api/config.ts
-import { unstable_cache } from 'next/cache';
 import { storeService } from './services';
 import { StoreConfig } from './types';
-
-/**
- * Cached version of store configuration.
- * Uses Next.js Data Cache to avoid repeated API calls.
- */
-export const getStoreConfig = unstable_cache(
-    async (): Promise<StoreConfig | null> => {
-        try {
-            return await storeService.getConfig();
-        } catch (error) {
-            console.error('[Config] Failed to fetch store config:', error);
-            return null;
-        }
-    },
-    ['store-config'],
-    {
-        revalidate: 3600, // 1 hour
-        tags: ['store-config'],
-    },
-);
 
 /**
  * Returns the base URL for API requests.
@@ -36,4 +14,20 @@ export function getBaseUrl(): string {
         process.env.NEXT_PUBLIC_API_URL ||
         'https://store-api.libro-shop.com/api/v1'
     );
+}
+
+/**
+ * Fetches store configuration.
+ * Temporarily direct fetch without unstable_cache to debug "Service Unavailable" issue.
+ */
+export async function getStoreConfig(): Promise<StoreConfig | null> {
+    try {
+        console.log('[Config] Fetching store config...');
+        const config = await storeService.getConfig();
+        console.log('[Config] Successfully fetched store config');
+        return config;
+    } catch (error) {
+        console.error('[Config] Failed to fetch store config:', error);
+        return null;
+    }
 }
