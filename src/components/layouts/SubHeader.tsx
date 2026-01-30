@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useBranchStore } from '@/store/useBranchStore';
 import { useOrderStore, getScheduledTimeAsDate } from '@/store/useOrderStore';
 import OrderTypeModal from '@/components/modals/OrderTypeModal';
+import { getAddressLabel, formatAddressForDisplay } from '@/lib/address';
 
 export default function SubHeader() {
     const t = useTranslations('SubHeader');
@@ -97,23 +98,10 @@ export default function SubHeader() {
                                     <span>
                                         {t('deliveryTo')}{' '}
                                         <span className="font-bold">
-                                            (
-                                            {deliveryAddress.label ||
-                                                deliveryAddress.name ||
-                                                'Address'}
-                                            )
+                                            ({getAddressLabel(deliveryAddress)})
                                         </span>{' '}
-                                        {deliveryAddress.formatted || (
-                                            <>
-                                                {deliveryAddress.street}
-                                                {(deliveryAddress.building ||
-                                                    deliveryAddress.building_number) &&
-                                                    `, ${deliveryAddress.building || deliveryAddress.building_number}`}
-                                                {', '}
-                                                {deliveryAddress.city_name ||
-                                                    deliveryAddress.city ||
-                                                    ''}
-                                            </>
+                                        {formatAddressForDisplay(
+                                            deliveryAddress,
                                         )}
                                     </span>
                                 </div>
@@ -187,25 +175,12 @@ export default function SubHeader() {
                                     <span className="font-medium">
                                         {t('deliveryTo')}{' '}
                                         <span className="text-theme-primary font-bold">
-                                            (
-                                            {deliveryAddress.label ||
-                                                deliveryAddress.name ||
-                                                'Address'}
-                                            )
+                                            ({getAddressLabel(deliveryAddress)})
                                         </span>
                                     </span>
                                     <p className="text-gray-600 text-xs mt-1">
-                                        {deliveryAddress.formatted || (
-                                            <>
-                                                {deliveryAddress.street}
-                                                {(deliveryAddress.building ||
-                                                    deliveryAddress.building_number) &&
-                                                    `, ${deliveryAddress.building || deliveryAddress.building_number}`}
-                                                {', '}
-                                                {deliveryAddress.city_name ||
-                                                    deliveryAddress.city ||
-                                                    ''}
-                                            </>
+                                        {formatAddressForDisplay(
+                                            deliveryAddress,
                                         )}
                                     </p>
                                 </div>

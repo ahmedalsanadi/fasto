@@ -8,19 +8,26 @@ import type {
 import { useAuthStore } from '@/store/useAuthStore';
 import { toast } from 'sonner';
 
+/** Query params for address list (filter by default or label). */
+export interface AddressListParams {
+    default?: boolean;
+    label?: string;
+}
+
 export const addressKeys = {
     all: ['addresses'] as const,
     lists: () => [...addressKeys.all, 'list'] as const,
-    list: (params: any) => [...addressKeys.lists(), params] as const,
+    list: (params: AddressListParams = {}) =>
+        [...addressKeys.lists(), params] as const,
     details: () => [...addressKeys.all, 'detail'] as const,
     detail: (id: number) => [...addressKeys.details(), id] as const,
 };
 
-export function useAddresses(params?: { default?: boolean; label?: string }) {
+export function useAddresses(params?: AddressListParams) {
     const { isAuthenticated } = useAuthStore();
 
     return useQuery({
-        queryKey: addressKeys.list(params || {}),
+        queryKey: addressKeys.list(params ?? {}),
         queryFn: () => storeService.getAddresses(params),
         enabled: isAuthenticated,
     });
@@ -35,6 +42,21 @@ export function useAddress(id: number | null) {
         enabled: isAuthenticated && !!id,
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
+}
+
+/** Prefetch a single address by ID (e.g. on card hover) so edit modal opens with cached data. */
+export function usePrefetchAddress() {
+    const queryClient = useQueryClient();
+    const { isAuthenticated } = useAuthStore();
+
+    return (id: number) => {
+        if (!isAuthenticated || !id) return;
+        queryClient.prefetchQuery({
+            queryKey: addressKeys.detail(id),
+            queryFn: () => storeService.getAddress(id),
+            staleTime: 5 * 60 * 1000,
+        });
+    };
 }
 
 export function useCreateAddress() {

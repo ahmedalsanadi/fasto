@@ -581,7 +581,10 @@
     "subtitle": "Manage your saved delivery addresses",
     "addNew": "Add New Address",
     "noAddresses": "No addresses saved yet",
+    "deleteTitle": "Delete address",
     "deleteConfirm": "Are you sure you want to delete this address?",
+    "confirmDelete": "Delete",
+    "cancel": "Cancel",
     "default": "Default",
     "home": "Home"
   },

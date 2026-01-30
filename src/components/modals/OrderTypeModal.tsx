@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, MapPin, Clock, Plus, Edit, Loader2 } from 'lucide-react';
+import { ChevronRight, Clock, Plus, Edit, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
     useOrderStore,
@@ -21,6 +21,17 @@ import {
     useCreateAddress,
     useUpdateAddress,
 } from '@/hooks/useAddresses';
+import {
+    type AddressFormSubmitPayload,
+    toCreateAddressRequest,
+    toUpdateAddressRequest,
+} from '@/types/address';
+import {
+    getNextDeliveryAddressAfterMutation,
+    showAddNewAddressButton,
+    getAddressLabel,
+    formatAddressForDisplay,
+} from '@/lib/address';
 
 interface OrderTypeModalProps {
     isOpen: boolean;
@@ -41,11 +52,8 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
     } = useOrderStore();
 
     const { isAuthenticated } = useAuthStore();
-    const {
-        addresses: guestAddresses,
-        addAddress: addGuestAddress,
-        updateAddress: updateGuestAddress,
-    } = useAddressStore();
+    const { addresses: guestAddresses, addAddress: addGuestAddress } =
+        useAddressStore();
 
     // React Query for authenticated user addresses
     const { data: apiAddresses = [], isLoading: isLoadingApiAddresses } =
@@ -81,7 +89,7 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
             const defaultAddr =
                 displayAddresses.find((a) => a.is_default) ||
                 displayAddresses[0];
-            setDeliveryAddress(defaultAddr as any);
+            setDeliveryAddress(defaultAddr);
         }
     }, [
         isOpen,
@@ -90,6 +98,11 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
         displayAddresses,
         setDeliveryAddress,
     ]);
+
+    const showAddNew = showAddNewAddressButton(
+        isAuthenticated,
+        displayAddresses.length,
+    );
 
     const handleAddAddress = () => {
         setEditingAddressId(null);
@@ -106,27 +119,41 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
         setShowAddressModal(true);
     };
 
-    const handleAddressSave = async (addressData: any) => {
+    const handleAddressSave = async (addressData: AddressFormSubmitPayload) => {
         try {
             if (isAuthenticated) {
                 if (editingAddressId) {
                     const result = await updateAddressMutation.mutateAsync({
                         id: editingAddressId,
-                        data: addressData,
+                        data: toUpdateAddressRequest(addressData),
                     });
-                    setDeliveryAddress(result as any);
+                    const next = getNextDeliveryAddressAfterMutation({
+                        event: 'updated',
+                        address: result,
+                        currentDelivery: deliveryAddress,
+                    });
+                    setDeliveryAddress(next);
                     toast.success(t('addressSaved'));
                 } else {
-                    const result =
-                        await createAddressMutation.mutateAsync(addressData);
-                    setDeliveryAddress(result as any);
+                    const result = await createAddressMutation.mutateAsync(
+                        toCreateAddressRequest(addressData),
+                    );
+                    const next = getNextDeliveryAddressAfterMutation({
+                        event: 'created',
+                        address: result,
+                        currentDelivery: deliveryAddress,
+                        addressesCountBeforeCreate: apiAddresses.length,
+                    });
+                    setDeliveryAddress(next);
                     toast.success(t('addressSaved'));
                 }
             } else {
-                // Guest logic: only one address allowed
-                const guestAddr = { ...addressData, id: Date.now() };
+                const guestAddr = {
+                    ...addressData,
+                    id: Date.now(),
+                } as Address;
                 addGuestAddress(guestAddr);
-                setDeliveryAddress(guestAddr as any);
+                setDeliveryAddress(guestAddr);
                 toast.success(t('addressSaved'));
             }
             setShowAddressModal(false);
@@ -149,7 +176,9 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
     };
 
     const openDateTimePicker = () => {
-        const date = scheduledTime || new Date(Date.now() + 86400000); // Default to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const date = scheduledTime || tomorrow;
         setTempDate(date.toISOString().split('T')[0]);
         setTempTime(
             `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
@@ -223,17 +252,14 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
                                     <h3 className="text-lg font-semibold text-gray-900">
                                         {t('deliveryAddress')}
                                     </h3>
-                                    {/* Hide Add New for guests if they already have one */}
-                                    {(!isAuthenticated &&
-                                        displayAddresses.length === 0) ||
-                                    isAuthenticated ? (
+                                    {showAddNew && (
                                         <button
                                             onClick={handleAddAddress}
                                             className="text-theme-primary text-sm font-bold flex items-center gap-1 hover:underline">
                                             <Plus className="w-4 h-4" />
                                             {t('addNew')}
                                         </button>
-                                    ) : null}
+                                    )}
                                 </div>
 
                                 {isLoadingAddresses ? (
@@ -246,9 +272,7 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
                                             <div
                                                 key={addr.id}
                                                 onClick={() =>
-                                                    setDeliveryAddress(
-                                                        addr as any,
-                                                    )
+                                                    setDeliveryAddress(addr)
                                                 }
                                                 className={cn(
                                                     'p-4 rounded-xl border-2 transition-all cursor-pointer group relative',
@@ -274,9 +298,9 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2 mb-1">
                                                             <span className="font-bold text-gray-900">
-                                                                {addr.label ||
-                                                                    addr.name ||
-                                                                    'Address'}
+                                                                {getAddressLabel(
+                                                                    addr,
+                                                                )}
                                                             </span>
                                                             {addr.is_default && (
                                                                 <span className="text-[10px] bg-theme-primary/10 text-theme-primary px-2 py-0.5 rounded-full font-bold">
@@ -287,8 +311,9 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
                                                             )}
                                                         </div>
                                                         <p className="text-sm text-gray-600 line-clamp-1">
-                                                            {addr.formatted ||
-                                                                addr.street}
+                                                            {formatAddressForDisplay(
+                                                                addr,
+                                                            )}
                                                         </p>
                                                     </div>
                                                     <button

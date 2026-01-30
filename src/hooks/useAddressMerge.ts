@@ -17,9 +17,11 @@ export function useAddressMerge() {
         }
 
         try {
-            console.log(
-                `[useAddressMerge] Syncing ${addresses.length} guest address(es) to account...`,
-            );
+            if (process.env.NODE_ENV === 'development') {
+                console.log(
+                    `[useAddressMerge] Syncing ${addresses.length} guest address(es) to account...`,
+                );
+            }
 
             // Map all guest addresses to creation promises
             const syncPromises = addresses.map(async (addr) => {
@@ -51,14 +53,18 @@ export function useAddressMerge() {
 
             // Successfully merged! Clear local storage.
             clearAddresses();
-            console.log(
-                '[useAddressMerge] Guest addresses successfully merged and cleared.',
-            );
+            if (process.env.NODE_ENV === 'development') {
+                console.log(
+                    '[useAddressMerge] Guest addresses successfully merged and cleared.',
+                );
+            }
         } catch (error) {
-            console.error(
-                '[useAddressMerge] Failed to sync guest addresses:',
-                error,
-            );
+            if (process.env.NODE_ENV === 'development') {
+                console.error(
+                    '[useAddressMerge] Failed to sync guest addresses:',
+                    error,
+                );
+            }
             // We keep the addresses in local storage so we can try again on next mount or action
         }
     }, [isAuthenticated, addresses, clearAddresses]);

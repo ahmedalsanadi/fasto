@@ -66,3 +66,41 @@ export interface CreateAddressRequest {
 }
 
 export type UpdateAddressRequest = Partial<CreateAddressRequest>;
+
+/**
+ * Payload emitted by AddressModal onSave. Matches CreateAddressRequest plus id (for edit)
+ * and optional display fields (name, formatted, notes) used by guest/local state.
+ * district_id can be null when no district is selected.
+ */
+export interface AddressFormSubmitPayload extends Omit<
+    CreateAddressRequest,
+    'district_id'
+> {
+    district_id?: number | null;
+    id?: number;
+    name?: string;
+    formatted?: string;
+    notes?: string;
+}
+
+/** Convert form payload to API create request (omit display-only fields, normalize district_id). */
+export function toCreateAddressRequest(
+    payload: AddressFormSubmitPayload,
+): CreateAddressRequest {
+    const { id, name, formatted, notes, district_id, ...rest } = payload;
+    return {
+        ...rest,
+        district_id: district_id ?? undefined,
+    };
+}
+
+/** Convert form payload to API update request (omit display-only fields, normalize district_id). */
+export function toUpdateAddressRequest(
+    payload: AddressFormSubmitPayload,
+): UpdateAddressRequest {
+    const { id, name, formatted, notes, district_id, ...rest } = payload;
+    return {
+        ...rest,
+        district_id: district_id ?? undefined,
+    };
+}

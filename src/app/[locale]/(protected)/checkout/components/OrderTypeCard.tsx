@@ -7,6 +7,7 @@ import { useOrderStore, getScheduledTimeAsDate } from '@/store/useOrderStore';
 import { useBranchStore } from '@/store/useBranchStore';
 import OrderTypeModal from '@/components/modals/OrderTypeModal';
 import { useTranslations } from 'next-intl';
+import { getAddressLabel, formatAddressForDisplay } from '@/lib/address';
 
 export default function OrderTypeCard() {
     const t = useTranslations('Order');
@@ -83,23 +84,14 @@ export default function OrderTypeCard() {
                                         <>
                                             <span className="text-theme-primary font-bold">
                                                 (
-                                                {deliveryAddress.label ||
-                                                    deliveryAddress.name ||
-                                                    'Address'}
+                                                {getAddressLabel(
+                                                    deliveryAddress,
+                                                )}
                                                 )
                                             </span>
                                             <span>
-                                                {deliveryAddress.formatted || (
-                                                    <>
-                                                        {deliveryAddress.street}
-                                                        {(deliveryAddress.building ||
-                                                            deliveryAddress.building_number) &&
-                                                            `, ${deliveryAddress.building || deliveryAddress.building_number}`}
-                                                        {', '}
-                                                        {deliveryAddress.city_name ||
-                                                            deliveryAddress.city ||
-                                                            ''}
-                                                    </>
+                                                {formatAddressForDisplay(
+                                                    deliveryAddress,
                                                 )}
                                             </span>
                                             {(deliveryAddress.notes ||

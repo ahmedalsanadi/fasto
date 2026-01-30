@@ -13,7 +13,7 @@ import { useTranslations } from 'next-intl';
 import { DEFAULT_MAP_CENTER } from '@/lib/branches';
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
-import { Address } from '@/types/address';
+import type { Address, AddressFormSubmitPayload } from '@/types/address';
 import { toast } from 'sonner';
 import {
     useAddress,
@@ -36,9 +36,9 @@ const AddressMap = dynamic(() => import('./AddressMap'), {
 interface AddressModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (address: any) => void;
+    onSave: (address: AddressFormSubmitPayload) => void;
     initialAddress?: Address | null;
-    addressId?: number | null; // Added for fetching by ID
+    addressId?: number | null;
 }
 
 const AddressModal: React.FC<AddressModalProps> = ({
@@ -73,7 +73,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
     const [additionalNumber, setAdditionalNumber] = useState('');
     const [isDefault, setIsDefault] = useState(false);
 
-    // Pending values to handle async loading of cities/districts
+    // Pending city/district: when editing, we set country first then need to wait for
+    // cities API before we can set selectedCity (same for district). We store the
+    // desired id in pending* and apply it once the list is loaded (see applyPendingWhenOptionsReady below).
     const [pendingCity, setPendingCity] = useState<number | ''>('');
     const [pendingDistrict, setPendingDistrict] = useState<number | ''>('');
 
@@ -151,10 +153,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
         [countries],
     );
 
-    // Apply pending city once cities list is loaded
+    // applyPendingWhenOptionsReady: once cities/districts load, set selected from pending if the option exists.
     useEffect(() => {
         if (!isLoadingCities && cities.length > 0 && pendingCity) {
-            // Check if our pending city actually exists in the list
             if (cities.some((c) => c.id === pendingCity)) {
                 setSelectedCity(pendingCity);
                 setPendingCity('');
@@ -162,7 +163,6 @@ const AddressModal: React.FC<AddressModalProps> = ({
         }
     }, [cities, isLoadingCities, pendingCity]);
 
-    // Apply pending district once districts list is loaded
     useEffect(() => {
         if (districts.length > 0 && pendingDistrict) {
             if (districts.some((d) => d.id === pendingDistrict)) {

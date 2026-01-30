@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Plus, MapPin, Loader2, Home as HomeIcon } from 'lucide-react';
 import AddressCard from './AddressCard';
 import AddressModal from '@/components/modals/AddressModal';
+import ConfirmModal from '@/components/modals/ConfirmModal';
 import { Button } from '@/components/ui/Button';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { toast } from 'sonner';
@@ -14,23 +15,32 @@ import {
     useCreateAddress,
     useUpdateAddress,
     useDeleteAddress,
+    usePrefetchAddress,
 } from '@/hooks/useAddresses';
 import { Address } from '@/types/address';
+import {
+    type AddressFormSubmitPayload,
+    toCreateAddressRequest,
+    toUpdateAddressRequest,
+} from '@/types/address';
 import { useOrderStore } from '@/store/useOrderStore';
+import { getNextDeliveryAddressAfterMutation } from '@/lib/address';
 
 export default function MyAddressesView() {
     const t = useTranslations('MyAddresses');
 
-    // React Query Hooks
     const { data: addresses = [], isLoading } = useAddresses();
     const createAddressMutation = useCreateAddress();
     const updateAddressMutation = useUpdateAddress();
     const deleteAddressMutation = useDeleteAddress();
+    const prefetchAddress = usePrefetchAddress();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAddressId, setEditingAddressId] = useState<number | null>(
         null,
     );
+    const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleAdd = () => {
         setEditingAddressId(null);
@@ -38,40 +48,54 @@ export default function MyAddressesView() {
     };
 
     const handleEdit = (address: Address) => {
-        // We set the ID, and the modal will handle the GET request for accuracy
         setEditingAddressId(address.id);
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (id: number) => {
-        if (confirm(t('deleteConfirm'))) {
-            try {
-                const { deliveryAddress, setDeliveryAddress } =
-                    useOrderStore.getState();
-                await deleteAddressMutation.mutateAsync(id);
+    const handleDeleteClick = (id: number) => {
+        setDeleteTargetId(id);
+    };
 
-                // If we deleted the active address, clear it
-                if (deliveryAddress?.id === id) {
-                    setDeliveryAddress(null);
-                }
+    const handleDeleteConfirm = async () => {
+        if (deleteTargetId == null) return;
+        const id = deleteTargetId;
+        setDeleteTargetId(null);
+        setIsDeleting(true);
+        try {
+            const { deliveryAddress, setDeliveryAddress } =
+                useOrderStore.getState();
+            await deleteAddressMutation.mutateAsync(id);
 
-                toast.success('Address deleted successfully');
-            } catch (error) {
-                toast.error('Failed to delete address');
-            }
+            const next = getNextDeliveryAddressAfterMutation({
+                event: 'deleted',
+                addressId: id,
+                currentDelivery: deliveryAddress,
+            });
+            setDeliveryAddress(next);
+
+            toast.success('Address deleted successfully');
+        } catch (error) {
+            toast.error('Failed to delete address');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
     const handleSetDefault = async (id: number) => {
         try {
-            const { setDeliveryAddress } = useOrderStore.getState();
+            const { deliveryAddress, setDeliveryAddress } =
+                useOrderStore.getState();
             const updated = await updateAddressMutation.mutateAsync({
                 id,
                 data: { is_default: true },
             });
 
-            // Selecting default address automatically for better UX
-            setDeliveryAddress(updated as any);
+            const next = getNextDeliveryAddressAfterMutation({
+                event: 'set_default',
+                address: updated,
+                currentDelivery: deliveryAddress,
+            });
+            setDeliveryAddress(next);
 
             toast.success('Default address updated');
         } catch (error) {
@@ -79,7 +103,7 @@ export default function MyAddressesView() {
         }
     };
 
-    const handleSave = async (addressData: any) => {
+    const handleSave = async (addressData: AddressFormSubmitPayload) => {
         try {
             const { deliveryAddress, setDeliveryAddress } =
                 useOrderStore.getState();
@@ -87,23 +111,29 @@ export default function MyAddressesView() {
             if (editingAddressId) {
                 const updated = await updateAddressMutation.mutateAsync({
                     id: editingAddressId,
-                    data: addressData,
+                    data: toUpdateAddressRequest(addressData),
                 });
 
-                // If this was the active delivery address, sync it
-                if (deliveryAddress?.id === editingAddressId) {
-                    setDeliveryAddress(updated as any);
-                }
+                const next = getNextDeliveryAddressAfterMutation({
+                    event: 'updated',
+                    address: updated,
+                    currentDelivery: deliveryAddress,
+                });
+                setDeliveryAddress(next);
 
                 toast.success('Address updated successfully');
             } else {
-                const created =
-                    await createAddressMutation.mutateAsync(addressData);
+                const created = await createAddressMutation.mutateAsync(
+                    toCreateAddressRequest(addressData),
+                );
 
-                // If it's the first address, or market as default, maybe select it
-                if (addresses.length === 0 || created.is_default) {
-                    setDeliveryAddress(created as any);
-                }
+                const next = getNextDeliveryAddressAfterMutation({
+                    event: 'created',
+                    address: created,
+                    currentDelivery: deliveryAddress,
+                    addressesCountBeforeCreate: addresses.length,
+                });
+                setDeliveryAddress(next);
 
                 toast.success('Address added successfully');
             }
@@ -165,8 +195,9 @@ export default function MyAddressesView() {
                                 key={address.id}
                                 address={address}
                                 onEdit={handleEdit}
-                                onDelete={handleDelete}
+                                onDelete={handleDeleteClick}
                                 onSetDefault={handleSetDefault}
+                                onMouseEnter={() => prefetchAddress(address.id)}
                             />
                         ))}
                     </div>
@@ -200,6 +231,18 @@ export default function MyAddressesView() {
                 }}
                 onSave={handleSave}
                 addressId={editingAddressId}
+            />
+
+            <ConfirmModal
+                isOpen={deleteTargetId != null}
+                onClose={() => setDeleteTargetId(null)}
+                onConfirm={handleDeleteConfirm}
+                title={t('deleteTitle')}
+                message={t('deleteConfirm')}
+                confirmLabel={t('confirmDelete')}
+                cancelLabel={t('cancel')}
+                variant="danger"
+                isLoading={isDeleting}
             />
         </div>
     );

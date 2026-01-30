@@ -5,12 +5,14 @@ import { MapPin, Trash2, Edit, Check, Phone } from 'lucide-react';
 import { Address } from '@/types/address';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { getAddressLabel, formatAddressForDisplay } from '@/lib/address';
 
 interface AddressCardProps {
     address: Address;
     onEdit: (address: Address) => void;
     onDelete: (id: number) => void;
     onSetDefault: (id: number) => void;
+    onMouseEnter?: () => void;
 }
 
 export default function AddressCard({
@@ -18,17 +20,18 @@ export default function AddressCard({
     onEdit,
     onDelete,
     onSetDefault,
+    onMouseEnter,
 }: AddressCardProps) {
     const t = useTranslations('MyAddresses');
 
     const isDefault = address.is_default;
-    const label = address.label || 'Address';
-    const formatted =
-        address.formatted || `${address.street}, ${address.city_name || ''}`;
+    const label = getAddressLabel(address);
+    const formatted = formatAddressForDisplay(address);
 
     return (
         <div
             onClick={() => !isDefault && onSetDefault(address.id)}
+            onMouseEnter={onMouseEnter}
             className={cn(
                 'group relative bg-white rounded-2xl md:rounded-3xl p-5 md:p-6 border-2 transition-all cursor-pointer',
                 isDefault
@@ -67,18 +70,7 @@ export default function AddressCard({
                         </div>
 
                         <p className="text-gray-500 text-sm md:text-md leading-relaxed line-clamp-2 pr-2">
-                            {address.formatted || (
-                                <>
-                                    {address.street}
-                                    {(address.building ||
-                                        address.building_number) &&
-                                        `, ${address.building || address.building_number}`}
-                                    {(address.unit || address.unit_number) &&
-                                        `, ${address.unit || address.unit_number}`}
-                                    {', '}
-                                    {address.city_name || address.city || ''}
-                                </>
-                            )}
+                            {formatted}
                         </p>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">

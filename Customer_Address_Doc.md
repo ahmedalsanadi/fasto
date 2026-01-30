@@ -195,8 +195,9 @@ The merge in `useAddressMerge` maps `Address` (guest) to a payload that matches 
 #### `src/hooks/useAddresses.ts`
 
 - **What it does**: React Query hooks for addresses and locations. **No Zustand**; only server state and API.
-- **useAddresses(params?)**: Query `addressKeys.list(params)`, `storeService.getAddresses(params)`, `enabled: isAuthenticated`. Returns list of addresses (or empty when guest).
+- **useAddresses(params?)**: Query `addressKeys.list(params ?? {})` with `AddressListParams` (`{ default?: boolean; label?: string }`), `storeService.getAddresses(params)`, `enabled: isAuthenticated`. Returns list of addresses (or empty when guest).
 - **useAddress(id)**: Query `addressKeys.detail(id)`, `storeService.getAddress(id)`, `enabled: isAuthenticated && !!id`, `staleTime: 5 min`. Used when editing by ID to avoid stale list data.
+- **usePrefetchAddress()**: Returns `(id: number) => void` that prefetches that address via `queryClient.prefetchQuery(addressKeys.detail(id))` when authenticated. Used by MyAddressesView on AddressCard `onMouseEnter` so edit modal can open with cached data.
 - **useCreateAddress()**: Mutation `storeService.createAddress(data)`. On success: invalidate `addressKeys.all`.
 - **useUpdateAddress()**: Mutation `storeService.updateAddress(id, data)`. On success: invalidate `addressKeys.all` and `addressKeys.detail(id)`.
 - **useDeleteAddress()**: Mutation `storeService.deleteAddress(id)`. On success: invalidate `addressKeys.all`.
@@ -222,17 +223,31 @@ The merge in `useAddressMerge` maps `Address` (guest) to a payload that matches 
 
 - **Address-related**: `PROTECTED_ROUTES` includes `'/my-addresses'`; `PROTECTED_API_ENDPOINTS` includes `'/store/addresses'`. Used for route protection and for knowing which API calls require auth (middleware or guards may use these; address API uses `isProtected: true` in store-service).
 
-### 5.4 Modals and map
+### 5.4 Address helpers (lib/address)
+
+#### `src/lib/address/deliverySync.ts`
+
+- **Role**: Centralized delivery-address sync after mutations. `getNextDeliveryAddressAfterMutation(options)` returns the value to set for `deliveryAddress` given event (`created` | `updated` | `deleted` | `set_default`), address or addressId, current delivery, and (for created) `addressesCountBeforeCreate`. Used by MyAddressesView and OrderTypeModal so they always call `setDeliveryAddress(next)` with the same logic.
+
+#### `src/lib/address/formatAddress.ts`
+
+- **Role**: Shared address display. `getAddressLabel(address)` returns label/name or fallback. `formatAddressForDisplay(address)` returns a single-line string (formatted or street, building, unit, city). `showAddNewAddressButton(isAuthenticated, addressCount)` returns whether to show the “Add New” button (guests only when count is 0). Used by SubHeader, OrderTypeCard, OrderTypeModal, AddressCard.
+
+### 5.5 Modals and map
+
+#### `src/components/modals/ConfirmModal.tsx`
+
+- **Role**: Reusable confirmation dialog. Props: `isOpen`, `onClose`, `onConfirm`, `title`, `message`, `confirmLabel`, `cancelLabel`, `variant` ('danger' | 'default'), `isLoading`. Used by MyAddressesView for address delete (variant danger, translated strings from MyAddresses).
 
 #### `src/components/modals/AddressModal.tsx`
 
 - **Role**: Central form for add/edit address: fields (label, recipient, phone, country, city, district, street, building, unit, postal code, additional number, notes, is_default), map search, and map click for coordinates.
-- **Props**: `isOpen`, `onClose`, `onSave(addressData)`, `initialAddress?`, `addressId?`. If `addressId` is set and user is auth, it fetches that address with `useAddress(addressId)` and uses it (or `initialAddress`) to fill the form. So **edit by ID** uses fresh data.
-- **State**: Many `useState` fields for each form field; `pendingCity` / `pendingDistrict` used because cities load after country and districts after city—when opening edit, we set pending values and apply them in `useEffect` when lists are loaded (and the option exists in the list).
+- **Props**: `isOpen`, `onClose`, `onSave(address: AddressFormSubmitPayload)`, `initialAddress?`, `addressId?`. If `addressId` is set and user is auth, it fetches that address with `useAddress(addressId)` and uses it (or `initialAddress`) to fill the form. So **edit by ID** uses fresh data.
+- **State**: Many `useState` fields; `pendingCity` / `pendingDistrict` used because cities load after country and districts after city—when opening edit, we set pending values and apply them in `useEffect` when lists are loaded (comment: “applyPendingWhenOptionsReady”).
 - **Validation**: `isValid` = addressName, phone, selectedCountry, selectedCity, street all non-empty. Save button disabled when `!isValid || isFetchingAddress`.
-- **Map**: Uses `AddressMap` with `searchQuery`, `selectedLocation`, `onLocationSelect` to set coordinates and `formattedAddress`. Map is lazy-loaded (`dynamic(..., { ssr: false })`).
-- **onSave**: Builds one object (id, label, recipient_name, phone, country_id, city_id, district_id, street, building, unit, postal_code, additional_number, description, is_default, name, formatted, notes, latitude, longitude) and calls `onSave(addressData)`. The parent (OrderTypeModal or MyAddressesView) decides whether to call API or guest store.
-- **Important**: Country/City/District `<select>` values must be **numbers** (not strings) for correct selected state; pending logic avoids showing wrong city/district before lists load.
+- **Map**: Uses `AddressMap` with `searchQuery`, `selectedLocation`, `onLocationSelect`. Map is lazy-loaded (`dynamic(..., { ssr: false })`).
+- **onSave**: Builds an `AddressFormSubmitPayload` (id, label, recipient_name, phone, country_id, city_id, district_id, street, building, unit, postal_code, additional_number, description, is_default, name, formatted, notes, latitude, longitude) and calls `onSave(addressData)`. Parents use `toCreateAddressRequest` / `toUpdateAddressRequest` when calling the API.
+- **Important**: Country/City/District `<select>` values must be **numbers** (not strings) for correct selected state.
 
 #### `src/components/modals/OrderTypeModal.tsx`
 
@@ -240,9 +255,9 @@ The merge in `useAddressMerge` maps `Address` (guest) to a payload that matches 
 - **Address source**: `displayAddresses = isAuthenticated ? apiAddresses : guestAddresses`; `apiAddresses` from `useAddresses()`, `guestAddresses` from `useAddressStore`.
 - **Default selection**: When modal is open, order type is delivery, and there is no `deliveryAddress` but `displayAddresses.length > 0`, it sets the first address or the one with `is_default` as delivery (`setDeliveryAddress(defaultAddr)`).
 - **Add**: `handleAddAddress` opens AddressModal with `editingAddressId = null`, `editingGuestAddress = null`.
-- **Edit**: If auth, sets `editingAddressId = address.id` and opens modal (AddressModal will fetch by ID). If guest, sets `editingGuestAddress = address` and passes as `initialAddress` (no ID fetch).
-- **Save**: `handleAddressSave(addressData)`: if auth, create or update via mutation then `setDeliveryAddress(result)`; if guest, build guest address with `id: Date.now()`, `addGuestAddress`, `setDeliveryAddress`. Then close modal and clear edit state.
-- **Add New button**: Rendered only when `(!isAuthenticated && displayAddresses.length === 0) || isAuthenticated`—so for guest, hide after they have one address.
+- **Edit**: If auth, sets `editingAddressId = address.id` and opens modal (AddressModal will fetch by ID). If guest, sets `editingGuestAddress = address` and passes as `initialAddress`.
+- **Save**: `handleAddressSave(addressData: AddressFormSubmitPayload)`: if auth, create or update via `toCreateAddressRequest`/`toUpdateAddressRequest` and mutation, then `setDeliveryAddress(getNextDeliveryAddressAfterMutation(...))`; if guest, build guest address, `addGuestAddress`, `setDeliveryAddress`. Then close modal and clear edit state.
+- **Add New button**: Shown when `showAddNewAddressButton(isAuthenticated, displayAddresses.length)` is true (guests only when they have no address yet).
 
 #### `src/components/modals/AddressMap.tsx`
 
@@ -253,7 +268,7 @@ The merge in `useAddressMerge` maps `Address` (guest) to a payload that matches 
 - **Search**: When `searchQuery` changes, debounced (800ms) request to `/proxy/nominatim/search?format=json&q=...&accept-language=ar`, takes first result and updates map center and marker, calls `onLocationSelect` with that result.
 - **Icons**: Uses custom Leaflet marker from `/images/leaflet/...` to avoid default icon issues.
 
-### 5.5 Pages and components
+### 5.6 Pages and components
 
 #### `src/app/[locale]/(protected)/my-addresses/page.tsx`
 
@@ -263,28 +278,28 @@ The merge in `useAddressMerge` maps `Address` (guest) to a payload that matches 
 
 - **Role**: Full CRUD for **authenticated** addresses only. Uses `useAddresses()`, no guest store.
 - **Add**: `handleAdd` opens AddressModal with `editingAddressId = null`.
-- **Edit**: `handleEdit(address)` sets `editingAddressId = address.id` and opens modal; AddressModal uses `addressId={editingAddressId}` and fetches by ID.
-- **Delete**: `handleDelete(id)` confirms, then gets `deliveryAddress` and `setDeliveryAddress` from `useOrderStore.getState()`, runs `deleteAddressMutation.mutateAsync(id)`, and if deleted id was the active delivery, calls `setDeliveryAddress(null)`.
-- **Set default**: `handleSetDefault(id)` updates with `{ is_default: true }`, then `setDeliveryAddress(updated)`.
-- **Save**: `handleSave(addressData)` — if editing, update mutation and if current delivery is that address, `setDeliveryAddress(updated)`; if creating, create mutation and if first address or created is_default, `setDeliveryAddress(created)`. Uses `useOrderStore.getState()` for delivery check/set.
+- **Edit**: `handleEdit(address)` sets `editingAddressId = address.id` and opens modal; AddressModal uses `addressId={editingAddressId}` and fetches by ID. `usePrefetchAddress()` is passed to AddressCard as `onMouseEnter` so the address is prefetched on hover.
+- **Delete**: `handleDeleteClick(id)` sets `deleteTargetId`; ConfirmModal opens. On confirm, `handleDeleteConfirm` runs `deleteAddressMutation.mutateAsync(id)` and `setDeliveryAddress(getNextDeliveryAddressAfterMutation({ event: 'deleted', addressId: id, currentDelivery }))`.
+- **Set default**: `handleSetDefault(id)` updates with `{ is_default: true }`, then `setDeliveryAddress(getNextDeliveryAddressAfterMutation({ event: 'set_default', address: updated, currentDelivery }))`.
+- **Save**: `handleSave(addressData: AddressFormSubmitPayload)` — if editing, `toUpdateAddressRequest(addressData)` and update mutation, then `setDeliveryAddress(getNextDeliveryAddressAfterMutation({ event: 'updated', ... }))`; if creating, `toCreateAddressRequest(addressData)` and create mutation, then `setDeliveryAddress(getNextDeliveryAddressAfterMutation({ event: 'created', addressesCountBeforeCreate: addresses.length, ... }))`.
 
 #### `src/app/[locale]/(protected)/my-addresses/AddressCard.tsx`
 
-- **Role**: Presentational card for one address. Shows label, formatted line (street, building, unit, city), phone, recipient, description/notes; default badge; Edit and Delete buttons. Clicking card (when not default) calls `onSetDefault(address.id)`.
+- **Role**: Presentational card for one address. Uses `getAddressLabel(address)` and `formatAddressForDisplay(address)` from `@/lib/address`. Shows label, formatted line, phone, recipient, description/notes; default badge; Edit and Delete buttons. Optional `onMouseEnter` (e.g. for prefetch). Clicking card (when not default) calls `onSetDefault(address.id)`.
 
 #### `src/app/[locale]/(protected)/checkout/components/OrderTypeCard.tsx`
 
-- **Role**: Displays current order type and delivery address + time (or branch for pickup). Reads `useOrderStore` (orderType, deliveryAddress, scheduledTime, orderTime). “Edit” opens `OrderTypeModal`. Does not touch address store or API directly.
+- **Role**: Displays current order type and delivery address + time (or branch for pickup). Reads `useOrderStore` (orderType, deliveryAddress, scheduledTime, orderTime). Uses `getAddressLabel(deliveryAddress)` and `formatAddressForDisplay(deliveryAddress)` for display. “Edit” opens `OrderTypeModal`. Does not touch address store or API directly.
 
 #### `src/components/layouts/SubHeader.tsx`
 
-- **Role**: Shows branch name and order type (dine-in, pickup, delivery). When order type is delivery and `deliveryAddress` exists, shows “Delivery to (label)” and address summary plus “Edit”; otherwise shows order type buttons. Clicking “Edit” or choosing delivery opens `OrderTypeModal`. All address data comes from `useOrderStore.deliveryAddress`.
+- **Role**: Shows branch name and order type (dine-in, pickup, delivery). When order type is delivery and `deliveryAddress` exists, shows “Delivery to (label)” and address summary plus “Edit” using `getAddressLabel(deliveryAddress)` and `formatAddressForDisplay(deliveryAddress)`; otherwise shows order type buttons. Clicking “Edit” or choosing delivery opens `OrderTypeModal`. All address data comes from `useOrderStore.deliveryAddress`.
 
 #### `src/components/layouts/Navbar.tsx`
 
 - **Role**: No address logic. Contains logo, nav items, search, language, notifications, cart, user menu. No address store or modal.
 
-### 5.6 Services
+### 5.7 Services
 
 #### `src/services/store-service.ts`
 
@@ -311,10 +326,12 @@ The merge in `useAddressMerge` maps `Address` (guest) to a payload that matches 
 
 ## 8. Where to find types and config
 
-- **Address / request types**: `src/types/address.ts` (Address, CreateAddressRequest, UpdateAddressRequest, Country, City, District).
+- **Address / request types**: `src/types/address.ts` (Address, CreateAddressRequest, UpdateAddressRequest, AddressFormSubmitPayload, toCreateAddressRequest, toUpdateAddressRequest, Country, City, District).
+- **Delivery sync**: `src/lib/address/deliverySync.ts` (getNextDeliveryAddressAfterMutation). Shared address display: `src/lib/address/formatAddress.ts` (getAddressLabel, formatAddressForDisplay, showAddNewAddressButton). Index: `src/lib/address/index.ts`.
 - **Map constants**: `src/lib/branches/constants.ts` (DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM).
 - **Auth constants**: `src/lib/auth/constants.ts` (PROTECTED_ROUTES, PROTECTED_API_ENDPOINTS).
-- **Query keys**: `src/hooks/useAddresses.ts` (addressKeys).
+- **Query keys**: `src/hooks/useAddresses.ts` (addressKeys, AddressListParams). Prefetch: `usePrefetchAddress()`.
+- **Delete confirmation**: `src/components/modals/ConfirmModal.tsx` (used by MyAddressesView for address delete).
 
 ---
 
@@ -328,30 +345,42 @@ The merge in `useAddressMerge` maps `Address` (guest) to a payload that matches 
 
 ---
 
-## 10. Bad practices, potential improvements, and refactor ideas
+## 10. Implemented refactors (current state)
 
-### 10.1 Bad practices / risks
+The following have been implemented and are the source of truth:
 
-- **`confirm()` for delete**: `MyAddressesView` uses `confirm(t('deleteConfirm'))` for delete. Prefer a proper modal for consistency and accessibility.
-- **`as any` on address**: Several places use `setDeliveryAddress(result as any)` or `setDeliveryAddress(updated as any)`. Typing should be tightened so the API result type matches `DeliveryAddress` (Address) and no cast is needed.
-- **Console.log in merge**: `useAddressMerge` logs to console; should be behind a dev flag or removed for production.
-- **Duplicate “default” / “Add New” logic**: OrderTypeModal and SubHeader encode when to show “Add New” or delivery summary; this could live in a small hook or constant to avoid drift.
-- **No retry UX for failed merge**: If merge fails, addresses stay in localStorage but user gets no in-app “Retry merge” action; they’d have to trigger something that calls merge again (currently only login/signup).
+- **Delivery address sync**: `getNextDeliveryAddressAfterMutation()` in `src/lib/address/deliverySync.ts` is used by MyAddressesView and OrderTypeModal after create/update/delete/set_default.
+- **Shared address display**: `getAddressLabel()` and `formatAddressForDisplay()` in `src/lib/address/formatAddress.ts` are used by SubHeader, OrderTypeCard, OrderTypeModal, and AddressCard.
+- **“Add New” visibility**: `showAddNewAddressButton(isAuthenticated, addressCount)` in `src/lib/address/formatAddress.ts` is used in OrderTypeModal.
+- **Typed form payload**: `AddressFormSubmitPayload`, `toCreateAddressRequest()`, and `toUpdateAddressRequest()` in `src/types/address.ts`; AddressModal `onSave` and handlers use these. No `addressData: any` or `as any` on delivery address.
+- **Pending city/district**: AddressModal has an inline comment describing the pending flow; the two useEffects apply pending when options are ready.
+- **Query key typing**: `addressKeys.list(params)` uses `AddressListParams` (`{ default?: boolean; label?: string }`) in `src/hooks/useAddresses.ts`.
+- **Delete confirmation**: MyAddressesView uses `ConfirmModal` (variant danger) with translations `deleteTitle`, `deleteConfirm`, `confirmDelete`, `cancel`; no native `confirm()`.
+- **Merge logging**: `useAddressMerge` logs only when `process.env.NODE_ENV === 'development'`.
+- **Prefetch on hover**: `usePrefetchAddress()` in useAddresses; MyAddressesView passes `onMouseEnter={() => prefetchAddress(address.id)}` to AddressCard so edit modal can open with cached data.
 
-### 10.2 Potential enhancements
+---
+
+## 11. Remaining risks, potential improvements, and refactor ideas
+
+### 11.1 Remaining risks / things to watch
+
+- **No retry UX for failed merge**: If merge fails at login/signup, addresses stay in localStorage but there is no in-app “Retry merge” action; the user would need to log out and log in again or complete another auth flow to retry.
+- **Guest address cast in OrderTypeModal**: When saving as guest, the code builds `guestAddr` and casts to `Address` (`as Address`) because the form payload does not include all Address fields (e.g. `city_name`). Functionally correct but the type could be refined (e.g. a `GuestAddress` type that is a subset of Address).
+- **ConfirmModal translations**: ConfirmModal receives `title`, `message`, `confirmLabel`, `cancelLabel` as props; callers must pass translated strings. Consider a variant that takes translation keys and namespace for consistency.
+
+### 11.2 Potential enhancements
 
 - **Retry merge**: After login/signup, if merge fails, show a toast or banner with “Retry” that calls `mergeGuestAddressAfterAuth()` again.
 - **Optimistic updates**: For delete/set default in MyAddressesView, consider optimistic updates with rollback on error for snappier UI.
-- **Phone validation**: Add format/validation for phone in AddressModal (e.g. length, digits) and possibly reuse in merge payload.
+- **Phone validation**: Add format/validation for phone in AddressModal (e.g. length, digits) and reuse in merge payload.
 - **Address limit**: If the API supports a max number of addresses, enforce it in the UI (disable “Add” or show a message when at limit).
-- **Preload address by ID**: When opening edit from list, you could prefetch `useAddress(id)` on hover or when the card is visible to make the modal open faster.
+- **Prefetch on visible**: In addition to hover, prefetch address when the card enters the viewport (e.g. IntersectionObserver) so edit opens fast even without hover.
 
-### 10.3 Optimizations / refactors
+### 11.3 Further optimizations / refactors
 
-- **Centralize “delivery address” sync**: One small hook or function that takes (event: 'created' | 'updated' | 'deleted' | 'set_default', addressOrId, currentDelivery) and returns whether to call `setDeliveryAddress` and with what value. Use it from MyAddressesView and OrderTypeModal to avoid duplicated logic.
-- **Shared address display component**: SubHeader, OrderTypeCard, and AddressCard all format address (label, street, building, city). A single `formatAddressForDisplay(address)` or `<AddressSummary address={...} />` would reduce duplication and keep formatting consistent.
-- **Type narrowing**: Replace `addressData: any` in `onSave` with a proper type (e.g. `CreateAddressRequest` or an internal form submit type that maps to it).
-- **Pending city/district**: The pending-city/district logic in AddressModal is subtle; a short comment or a small helper (“applyPendingWhenOptionsReady”) would help future readers and AI agents.
-- **Query key typing**: `addressKeys.list(params)` uses `params?: any`; typing params (e.g. `{ default?: boolean; label?: string }`) would make cache behavior clearer and prevent accidental wrong keys.
+- **AddressSummary component**: SubHeader and OrderTypeCard still render label + formatted text manually; a small `<AddressSummary address={...} />` that uses `getAddressLabel` and `formatAddressForDisplay` could reduce JSX duplication.
+- **Single source for “delivery to” copy**: The phrase “Delivery to (label)” appears in SubHeader and OrderTypeCard with the same structure; a shared snippet or component would keep copy and structure in one place.
+- **StaleTime for list**: `useAddresses()` has no explicit `staleTime`; list refetches on every mount/window focus by default. If the list changes rarely, adding a short `staleTime` could reduce unnecessary refetches.
 
 Using this doc, you or an AI agent can trace every step of the address flow, see exactly which files and stores are involved, when sync runs, and what to change or extend without breaking guest vs auth behavior or the single delivery-address source of truth.
