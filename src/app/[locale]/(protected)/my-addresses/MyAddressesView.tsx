@@ -170,7 +170,10 @@ export default function MyAddressesView() {
             {/* Address Modal */}
             <AddressModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingAddress(null);
+                }}
                 onSave={handleSave}
                 initialAddress={editingAddress}
             />

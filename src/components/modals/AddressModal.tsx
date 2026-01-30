@@ -185,6 +185,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
     // Initialize form with existing address if editing
     useEffect(() => {
         if (isOpen) {
+            // Always clear search query when modal opens
+            setSearchQuery('');
+
             if (initialAddress) {
                 setAddressName(
                     initialAddress.label || initialAddress.name || '',
@@ -197,8 +200,14 @@ const AddressModal: React.FC<AddressModalProps> = ({
                 setSelectedCountry(initialAddress.country_id || '');
                 // Cities and Districts are handled by their respective effects
                 setStreet(initialAddress.street || '');
-                setBuilding(initialAddress.building || '');
-                setUnit(initialAddress.unit || '');
+                setBuilding(
+                    initialAddress.building ||
+                        initialAddress.building_number ||
+                        '',
+                );
+                setUnit(
+                    initialAddress.unit || initialAddress.unit_number || '',
+                );
                 setPostalCode(initialAddress.postal_code || '');
                 setAdditionalNumber(initialAddress.additional_number || '');
                 setIsDefault(
@@ -215,10 +224,12 @@ const AddressModal: React.FC<AddressModalProps> = ({
                 }
                 setFormattedAddress(initialAddress.formatted || '');
             } else {
+                // Reset everything for a new address
                 setAddressName('');
                 setRecipientName('');
                 setPhone('');
                 setAddressNotes('');
+                setSelectedCountry(''); // CRITICAL FIX: Missing reset
                 setSelectedCity('');
                 setSelectedDistrict('');
                 setStreet('');
