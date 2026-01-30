@@ -243,11 +243,13 @@ The merge in `useAddressMerge` maps `Address` (guest) to a payload that matches 
 
 - **Role**: Central form for add/edit address: fields (label, recipient, phone, country, city, district, street, building, unit, postal code, additional number, notes, is_default), map search, and map click for coordinates.
 - **Props**: `isOpen`, `onClose`, `onSave(address: AddressFormSubmitPayload)`, `initialAddress?`, `addressId?`. If `addressId` is set and user is auth, it fetches that address with `useAddress(addressId)` and uses it (or `initialAddress`) to fill the form. So **edit by ID** uses fresh data.
-- **State**: Many `useState` fields; `pendingCity` / `pendingDistrict` used because cities load after country and districts after city—when opening edit, we set pending values and apply them in `useEffect` when lists are loaded (comment: “applyPendingWhenOptionsReady”).
+- **State**: Many `useState` fields; `pendingCity` / `pendingDistrict` used because cities load after country and districts after city—when opening edit, we set `selectedCity('')` and `selectedDistrict('')` first, then pending values, so the correct city/district are applied when lists load (comment: “applyPendingWhenOptionsReady”).
 - **Validation**: `isValid` = addressName, phone, selectedCountry, selectedCity, street all non-empty. Save button disabled when `!isValid || isFetchingAddress`.
-- **Map**: Uses `AddressMap` with `searchQuery`, `selectedLocation`, `onLocationSelect`. Map is lazy-loaded (`dynamic(..., { ssr: false })`).
-- **onSave**: Builds an `AddressFormSubmitPayload` (id, label, recipient_name, phone, country_id, city_id, district_id, street, building, unit, postal_code, additional_number, description, is_default, name, formatted, notes, latitude, longitude) and calls `onSave(addressData)`. Parents use `toCreateAddressRequest` / `toUpdateAddressRequest` when calling the API.
-- **Important**: Country/City/District `<select>` values must be **numbers** (not strings) for correct selected state.
+- **Map**: Uses `AddressMap` with `searchQuery`, `selectedLocation`, `onLocationSelect`. Map is lazy-loaded (`dynamic(..., { ssr: false })`). On location select (map click or search), a toast “Location selected” is shown; a “Location selected” card with check icon and formatted address appears above the search field and (compact) below the map.
+- **Loading**: When `isFetchingAddress`, a full skeleton matching the form+map grid is shown so the modal doesn’t jump in size; content area has `min-h-[40vh] sm:min-h-[480px]` for stable height.
+- **onSave**: Builds an `AddressFormSubmitPayload` and calls `onSave(addressData)`. Parents use `toCreateAddressRequest` / `toUpdateAddressRequest` when calling the API. Parents close the modal immediately (optimistic) then run the mutation in the background.
+- **Country/City/District**: Selects use `value={selectedX === '' ? '' : selectedX}` for correct option matching. Styling: ChevronDown icon (end side, RTL-aware), `min-h-[48px]`, `rounded-xl`, focus ring. On edit, city/district are cleared then restored from pending when lists load.
+- **Mobile**: Outer wrapper `p-3 sm:p-4 md:p-5` so the modal never touches screen edges. Modal `max-h-[88vh] sm:max-h-[90vh]`, `rounded-xl sm:rounded-2xl md:rounded-3xl`. Map column is `order-first` on mobile so map and “Location selected” appear first. Footer buttons `min-h-[48px]`, `rounded-lg sm:rounded-xl`, `touch-manipulation`.
 
 #### `src/components/modals/OrderTypeModal.tsx`
 
@@ -256,8 +258,9 @@ The merge in `useAddressMerge` maps `Address` (guest) to a payload that matches 
 - **Default selection**: When modal is open, order type is delivery, and there is no `deliveryAddress` but `displayAddresses.length > 0`, it sets the first address or the one with `is_default` as delivery (`setDeliveryAddress(defaultAddr)`).
 - **Add**: `handleAddAddress` opens AddressModal with `editingAddressId = null`, `editingGuestAddress = null`.
 - **Edit**: If auth, sets `editingAddressId = address.id` and opens modal (AddressModal will fetch by ID). If guest, sets `editingGuestAddress = address` and passes as `initialAddress`.
-- **Save**: `handleAddressSave(addressData: AddressFormSubmitPayload)`: if auth, create or update via `toCreateAddressRequest`/`toUpdateAddressRequest` and mutation, then `setDeliveryAddress(getNextDeliveryAddressAfterMutation(...))`; if guest, build guest address, `addGuestAddress`, `setDeliveryAddress`. Then close modal and clear edit state.
+- **Save**: `handleAddressSave(addressData)`: modal closes immediately (optimistic), then create/update/guest logic runs in the background; `setDeliveryAddress(getNextDeliveryAddressAfterMutation(...))` and toast on success, toast on error.
 - **Add New button**: Shown when `showAddNewAddressButton(isAuthenticated, displayAddresses.length)` is true (guests only when they have no address yet).
+- **Mobile**: Outer wrapper `p-3 sm:p-4 md:p-5` so the modal has visible margins. Modal `max-h-[88vh] sm:max-h-[90vh]`, `rounded-xl sm:rounded-2xl md:rounded-3xl`. Content/footer padding `p-4 sm:p-5 md:p-6`. Buttons and address cards use `rounded-lg sm:rounded-xl` on mobile. Save button `min-h-[48px]`, `touch-manipulation`. Close button has 44px touch target.
 
 #### `src/components/modals/AddressMap.tsx`
 
@@ -332,6 +335,7 @@ The merge in `useAddressMerge` maps `Address` (guest) to a payload that matches 
 - **Auth constants**: `src/lib/auth/constants.ts` (PROTECTED_ROUTES, PROTECTED_API_ENDPOINTS).
 - **Query keys**: `src/hooks/useAddresses.ts` (addressKeys, AddressListParams). Prefetch: `usePrefetchAddress()`.
 - **Delete confirmation**: `src/components/modals/ConfirmModal.tsx` (used by MyAddressesView for address delete).
+- **Address modal UX**: Address translations include `fetchingAddress`, `locationSelected` (toast and “Location selected” card). Modal design for small screens: outer padding `p-3 sm:p-4 md:p-5`, `max-h-[88vh] sm:max-h-[90vh]`, `rounded-xl sm:rounded-2xl md:rounded-3xl`; same pattern in OrderTypeModal.
 
 ---
 
@@ -353,11 +357,20 @@ The following have been implemented and are the source of truth:
 - **Shared address display**: `getAddressLabel()` and `formatAddressForDisplay()` in `src/lib/address/formatAddress.ts` are used by SubHeader, OrderTypeCard, OrderTypeModal, and AddressCard.
 - **“Add New” visibility**: `showAddNewAddressButton(isAuthenticated, addressCount)` in `src/lib/address/formatAddress.ts` is used in OrderTypeModal.
 - **Typed form payload**: `AddressFormSubmitPayload`, `toCreateAddressRequest()`, and `toUpdateAddressRequest()` in `src/types/address.ts`; AddressModal `onSave` and handlers use these. No `addressData: any` or `as any` on delivery address.
-- **Pending city/district**: AddressModal has an inline comment describing the pending flow; the two useEffects apply pending when options are ready.
+- **Pending city/district**: AddressModal clears `selectedCity` and `selectedDistrict` when populating an address for edit, then sets `pendingCity`/`pendingDistrict`; the two useEffects apply them when cities/districts lists load so country/city/district show correctly when updating an address.
 - **Query key typing**: `addressKeys.list(params)` uses `AddressListParams` (`{ default?: boolean; label?: string }`) in `src/hooks/useAddresses.ts`.
 - **Delete confirmation**: MyAddressesView uses `ConfirmModal` (variant danger) with translations `deleteTitle`, `deleteConfirm`, `confirmDelete`, `cancel`; no native `confirm()`.
 - **Merge logging**: `useAddressMerge` logs only when `process.env.NODE_ENV === 'development'`.
 - **Prefetch on hover**: `usePrefetchAddress()` in useAddresses; MyAddressesView passes `onMouseEnter={() => prefetchAddress(address.id)}` to AddressCard so edit modal can open with cached data.
+- **Optimistic save close**: OrderTypeModal and MyAddressesView close the address modal immediately when the user clicks Save, then run the mutation in the background and show success/error toast. No change to business logic; only when the modal closes.
+- **Modal design (small screens)**:
+  - **Spacing**: AddressModal and OrderTypeModal use outer padding `p-3 sm:p-4 md:p-5` so the modal never touches the screen edges on mobile.
+  - **Height**: Both modals use `max-h-[88vh] sm:max-h-[90vh]` so they stay within the viewport with visible top/bottom margin.
+  - **Radius**: Modal containers use `rounded-xl sm:rounded-2xl md:rounded-3xl` on mobile (smaller radius). Internal elements (buttons, cards, inputs) use `rounded-lg sm:rounded-xl` where applicable.
+  - **Touch**: Footer and close buttons use `min-h-[48px]` or 44px touch targets and `touch-manipulation` where appropriate.
+- **AddressModal loading**: When `isFetchingAddress`, a full skeleton matching the form+map grid is shown (same layout as content) so the modal doesn’t jump in size; content area has a fixed min-height for stable height.
+- **Location selection feedback**: On map click or search selection, AddressModal shows a toast “Location selected” (translation key `locationSelected`). A “Location selected” card with check icon and formatted address appears above the search field; the same address is shown in a compact card below the map. Map overlay label uses the same translation.
+- **Country/City/District selects**: AddressModal uses explicit `value={selectedX === '' ? '' : selectedX}` for correct option matching, ChevronDown icon (end side, RTL-aware), `min-h-[48px]`, focus ring, and `ps-4 pe-10` for spacing. Edit flow clears city/district then applies pending when lists load.
 
 ---
 
