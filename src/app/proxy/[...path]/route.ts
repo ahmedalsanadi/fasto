@@ -15,10 +15,15 @@ async function handleRequest(
     const backendPath = `/${path.join('/')}`;
     const searchParams = request.nextUrl.searchParams.toString();
 
+    // CHECK FOR NOMINATIM CALLS
+    const isNominatim = path[0] === 'nominatim';
+
     // Determine if this endpoint requires authentication
-    const isProtected = PROTECTED_API_ENDPOINTS.some((endpoint) =>
-        backendPath.startsWith(endpoint),
-    );
+    const isProtected =
+        !isNominatim &&
+        PROTECTED_API_ENDPOINTS.some((endpoint) =>
+            backendPath.startsWith(endpoint),
+        );
 
     // Get customer token from cookies
     const token = request.cookies.get(AUTH_COOKIES.ACCESS_TOKEN)?.value;
@@ -41,7 +46,17 @@ async function handleRequest(
 
     // Always inject X-Store-Key from server-side env (never from client)
     // This ensures the API key is never exposed in browser devtools
-    headers.set('X-Store-Key', env.liberoApiKey);
+    if (!isNominatim) {
+        headers.set('X-Store-Key', env.liberoApiKey);
+    } else {
+        // Special headers for Nominatim compatibility and policy
+        headers.set(
+            'User-Agent',
+            'Store-Restaurant-App/1.0 (alsanadi.ahmed@gmail.com)',
+        );
+        // Remove Libero-specific headers for Nominatim requests
+        headers.delete('X-Store-Key');
+    }
 
     // CRITICAL: For protected endpoints, ensure Authorization header is set
     // Use the token we already read from cookies (more reliable than getBaseHeaders reading it again)
@@ -59,22 +74,37 @@ async function handleRequest(
     }
 
     try {
-        const targetUrl = `${env.apiUrl}${backendPath}${
-            searchParams ? `?${searchParams}` : ''
-        }`;
+        let targetUrl = '';
+        if (isNominatim) {
+            const nominatimPath = `/${path.slice(1).join('/')}`;
+            targetUrl = `https://nominatim.openstreetmap.org${nominatimPath}${
+                searchParams ? `?${searchParams}` : ''
+            }`;
+            // Policy requirement: add email if not present
+            if (!targetUrl.includes('email=')) {
+                targetUrl +=
+                    (targetUrl.includes('?') ? '&' : '?') +
+                    'email=alsanadi.ahmed@gmail.com';
+            }
+        } else {
+            targetUrl = `${env.apiUrl}${backendPath}${
+                searchParams ? `?${searchParams}` : ''
+            }`;
+        }
 
         // Get branch ID from cookies
         const branchId = request.cookies.get(BRANCH_COOKIES.BRANCH_ID)?.value;
 
-        if (branchId) {
+        if (branchId && !isNominatim) {
             headers.set('x-branch-id', branchId);
         }
 
         if (env.isDev) {
             console.log(`[Proxy] ${method} -> ${targetUrl}`, {
+                isNominatim,
                 hasToken: !!token,
                 isProtected,
-                branchId,
+                branchId: !isNominatim ? branchId : undefined,
                 authHeader: headers.get('Authorization')
                     ? 'present'
                     : 'missing',

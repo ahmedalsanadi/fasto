@@ -61,6 +61,8 @@ export interface CreateAddressRequest {
     additional_number?: string;
     description?: string;
     is_default?: boolean;
+    latitude?: number;
+    longitude?: number;
 }
 
 export type UpdateAddressRequest = Partial<CreateAddressRequest>;

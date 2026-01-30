@@ -39,6 +39,10 @@ export function useAddressMerge() {
                     additional_number: addr.additional_number || undefined,
                     description: addr.description || addr.notes || '',
                     is_default: addr.is_default || false,
+                    latitude: addr.latitude ? Number(addr.latitude) : undefined,
+                    longitude: addr.longitude
+                        ? Number(addr.longitude)
+                        : undefined,
                 };
                 return storeService.createAddress(payload);
             });

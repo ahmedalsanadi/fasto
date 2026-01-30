@@ -51,10 +51,14 @@ const MapClickHandler = ({
         click: async (e) => {
             const { lat, lng } = e.latlng;
             try {
+                // Use the unified proxy to bypass CORS and Nominatim restrictions
                 const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar`,
+                    `/proxy/nominatim/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar`,
                 );
+                if (!response.ok)
+                    throw new Error('Network response was not ok');
                 const data = await response.json();
+
                 const formatted =
                     data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
                 onLocationSelect([lat, lng], formatted);
@@ -122,14 +126,15 @@ const AddressMap: React.FC<AddressMapProps> = ({
 
         const timer = setTimeout(async () => {
             try {
-                // Search specifically in Saudi Arabia for better relevance if possible,
-                // but keep it general for now as requested.
+                // Use the unified proxy for search to bypass CORS
                 const response = await fetch(
-                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+                    `/proxy/nominatim/search?format=json&q=${encodeURIComponent(
                         searchQuery,
-                    )}&limit=1&accept-language=ar`,
+                    )}&accept-language=ar`,
                 );
+                if (!response.ok) throw new Error('Search failed');
                 const data = await response.json();
+
                 if (data && data.length > 0) {
                     const { lat, lon, display_name } = data[0];
                     const newLocation: [number, number] = [
@@ -147,7 +152,6 @@ const AddressMap: React.FC<AddressMapProps> = ({
 
         return () => clearTimeout(timer);
     }, [searchQuery, onLocationSelect]);
-
     const handleLocationSelect = useCallback(
         (location: [number, number], formatted: string) => {
             setSelectedLocation(location);

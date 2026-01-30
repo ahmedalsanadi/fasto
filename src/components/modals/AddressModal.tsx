@@ -45,7 +45,10 @@ const AddressModal: React.FC<AddressModalProps> = ({
         [number, number] | null
     >(
         initialAddress?.latitude && initialAddress?.longitude
-            ? [initialAddress.latitude, initialAddress.longitude]
+            ? [
+                  Number(initialAddress.latitude),
+                  Number(initialAddress.longitude),
+              ]
             : DEFAULT_MAP_CENTER,
     );
     const [formattedAddress, setFormattedAddress] = useState('');
@@ -146,7 +149,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
         if (selectedCity) {
             const fetchDistricts = async () => {
                 try {
-                    console.log(`[AddressModal] Fetching districts for city: ${selectedCity}...`);
+                    console.log(
+                        `[AddressModal] Fetching districts for city: ${selectedCity}...`,
+                    );
                     const data = await storeService.getDistricts(
                         Number(selectedCity),
                     );
@@ -155,7 +160,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
                     setDistricts(districtsArray);
                     if (
                         initialAddress?.district_id &&
-                        districtsArray.some((d) => d.id === initialAddress.district_id)
+                        districtsArray.some(
+                            (d) => d.id === initialAddress.district_id,
+                        )
                     ) {
                         setSelectedDistrict(initialAddress.district_id);
                     } else {
@@ -167,7 +174,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
             };
             fetchDistricts();
         } else {
-            console.log('[AddressModal] Skipping districts fetch: no city selected');
+            console.log(
+                '[AddressModal] Skipping districts fetch: no city selected',
+            );
             setDistricts([]);
             setSelectedDistrict('');
         }
@@ -200,8 +209,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
 
                 if (initialAddress.latitude && initialAddress.longitude) {
                     setSelectedLocation([
-                        initialAddress.latitude,
-                        initialAddress.longitude,
+                        Number(initialAddress.latitude),
+                        Number(initialAddress.longitude),
                     ]);
                 }
                 setFormattedAddress(initialAddress.formatted || '');
