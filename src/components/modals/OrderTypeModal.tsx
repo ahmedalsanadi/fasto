@@ -119,50 +119,55 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
         setShowAddressModal(true);
     };
 
-    const handleAddressSave = async (addressData: AddressFormSubmitPayload) => {
-        try {
-            if (isAuthenticated) {
-                if (editingAddressId) {
-                    const result = await updateAddressMutation.mutateAsync({
-                        id: editingAddressId,
-                        data: toUpdateAddressRequest(addressData),
-                    });
-                    const next = getNextDeliveryAddressAfterMutation({
-                        event: 'updated',
-                        address: result,
-                        currentDelivery: deliveryAddress,
-                    });
-                    setDeliveryAddress(next);
-                    toast.success(t('addressSaved'));
+    const handleAddressSave = (addressData: AddressFormSubmitPayload) => {
+        const editingId = editingAddressId;
+        setShowAddressModal(false);
+        setEditingAddressId(null);
+        setEditingGuestAddress(null);
+
+        const runSave = async () => {
+            try {
+                if (isAuthenticated) {
+                    if (editingId) {
+                        const result = await updateAddressMutation.mutateAsync({
+                            id: editingId,
+                            data: toUpdateAddressRequest(addressData),
+                        });
+                        const next = getNextDeliveryAddressAfterMutation({
+                            event: 'updated',
+                            address: result,
+                            currentDelivery: deliveryAddress,
+                        });
+                        setDeliveryAddress(next);
+                        toast.success(t('addressSaved'));
+                    } else {
+                        const result = await createAddressMutation.mutateAsync(
+                            toCreateAddressRequest(addressData),
+                        );
+                        const next = getNextDeliveryAddressAfterMutation({
+                            event: 'created',
+                            address: result,
+                            currentDelivery: deliveryAddress,
+                            addressesCountBeforeCreate: apiAddresses.length,
+                        });
+                        setDeliveryAddress(next);
+                        toast.success(t('addressSaved'));
+                    }
                 } else {
-                    const result = await createAddressMutation.mutateAsync(
-                        toCreateAddressRequest(addressData),
-                    );
-                    const next = getNextDeliveryAddressAfterMutation({
-                        event: 'created',
-                        address: result,
-                        currentDelivery: deliveryAddress,
-                        addressesCountBeforeCreate: apiAddresses.length,
-                    });
-                    setDeliveryAddress(next);
+                    const guestAddr = {
+                        ...addressData,
+                        id: Date.now(),
+                    } as Address;
+                    addGuestAddress(guestAddr);
+                    setDeliveryAddress(guestAddr);
                     toast.success(t('addressSaved'));
                 }
-            } else {
-                const guestAddr = {
-                    ...addressData,
-                    id: Date.now(),
-                } as Address;
-                addGuestAddress(guestAddr);
-                setDeliveryAddress(guestAddr);
-                toast.success(t('addressSaved'));
+            } catch (error) {
+                console.error('Failed to save address:', error);
+                toast.error(t('addressSaveError'));
             }
-            setShowAddressModal(false);
-            setEditingAddressId(null);
-            setEditingGuestAddress(null);
-        } catch (error) {
-            console.error('Failed to save address:', error);
-            toast.error(t('addressSaveError'));
-        }
+        };
+        void runSave();
     };
 
     const handleTimeSelect = (time: OrderTime) => {
@@ -204,37 +209,41 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
             />
             <div
                 ref={modalRef}
-                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-5"
                 role="dialog"
                 aria-modal="true">
                 <div
-                    className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+                    className={cn(
+                        'bg-white shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col',
+                        'max-h-[88vh] sm:max-h-[90vh]',
+                        'rounded-xl sm:rounded-2xl md:rounded-3xl',
+                    )}
                     onClick={(e) => e.stopPropagation()}>
                     {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                        <h2 className="text-xl font-bold text-gray-900">
+                    <div className="flex items-center justify-between p-4 sm:p-5 md:p-6 border-b border-gray-100 shrink-0">
+                        <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                             {t('orderType')}
                         </h2>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center -m-2">
                             <ChevronRight className="w-5 h-5 text-gray-500" />
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-5 md:p-6 space-y-6 sm:space-y-8">
                         {/* Order Type */}
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                                 {t('selectOrderType')}
                             </h3>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                 {orderTypes.map((type) => (
                                     <button
                                         key={type.id}
                                         onClick={() => setOrderType(type.id)}
                                         className={cn(
-                                            'p-4 rounded-xl border-2 transition-all duration-200 text-right',
+                                            'p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-200 text-right',
                                             orderType === type.id
                                                 ? 'bg-theme-primary/5 border-theme-primary text-theme-primary font-semibold'
                                                 : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300',
@@ -249,7 +258,7 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
                         {orderType === 'delivery' && (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-semibold text-gray-900">
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                                         {t('deliveryAddress')}
                                     </h3>
                                     {showAddNew && (
@@ -263,7 +272,7 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
                                 </div>
 
                                 {isLoadingAddresses ? (
-                                    <div className="flex items-center justify-center p-8 bg-gray-50 rounded-xl border border-gray-100">
+                                    <div className="flex items-center justify-center p-6 sm:p-8 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100">
                                         <Loader2 className="w-6 h-6 text-theme-primary animate-spin" />
                                     </div>
                                 ) : displayAddresses.length > 0 ? (
@@ -275,7 +284,7 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
                                                     setDeliveryAddress(addr)
                                                 }
                                                 className={cn(
-                                                    'p-4 rounded-xl border-2 transition-all cursor-pointer group relative',
+                                                    'p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all cursor-pointer group relative',
                                                     deliveryAddress?.id ===
                                                         addr.id
                                                         ? 'bg-theme-primary/5 border-theme-primary'
@@ -332,8 +341,9 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
                                     </div>
                                 ) : (
                                     <button
+                                        type="button"
                                         onClick={handleAddAddress}
-                                        className="w-full p-8 border-2 border-dashed border-gray-200 rounded-2xl hover:border-theme-primary hover:bg-theme-primary/5 transition-all group">
+                                        className="w-full p-6 sm:p-8 border-2 border-dashed border-gray-200 rounded-xl sm:rounded-2xl hover:border-theme-primary hover:bg-theme-primary/5 transition-all group">
                                         <div className="flex flex-col items-center gap-2">
                                             <Plus className="w-6 h-6 text-gray-400 group-hover:text-theme-primary" />
                                             <span className="font-bold text-gray-500 group-hover:text-theme-primary">
@@ -347,14 +357,14 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
 
                         {/* Order Time */}
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                                 {t('selectOrderTime')}
                             </h3>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                 <button
                                     onClick={() => handleTimeSelect('now')}
                                     className={cn(
-                                        'p-4 rounded-xl border-2 transition-all duration-200 text-right',
+                                        'p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-200 text-right',
                                         orderTime === 'now'
                                             ? 'bg-theme-primary/5 border-theme-primary text-theme-primary font-semibold'
                                             : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300',
@@ -364,7 +374,7 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
                                 <button
                                     onClick={() => handleTimeSelect('later')}
                                     className={cn(
-                                        'p-4 rounded-xl border-2 transition-all duration-200 text-right',
+                                        'p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-200 text-right',
                                         orderTime === 'later'
                                             ? 'bg-theme-primary/5 border-theme-primary text-theme-primary font-semibold'
                                             : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300',
@@ -469,10 +479,11 @@ const OrderTypeModal: React.FC<OrderTypeModalProps> = ({ isOpen, onClose }) => {
                         </div>
                     </div>
 
-                    <div className="p-6 border-t border-gray-100 flex items-center justify-end">
+                    <div className="p-4 sm:p-5 md:p-6 border-t border-gray-100 flex items-center justify-end shrink-0">
                         <button
+                            type="button"
                             onClick={onClose}
-                            className="w-full bg-theme-primary text-white font-semibold py-3 rounded-xl hover:brightness-[0.95] transition-all">
+                            className="w-full bg-theme-primary text-white font-semibold py-3 min-h-[48px] rounded-lg sm:rounded-xl hover:brightness-[0.95] transition-all touch-manipulation">
                             {t('save')}
                         </button>
                     </div>

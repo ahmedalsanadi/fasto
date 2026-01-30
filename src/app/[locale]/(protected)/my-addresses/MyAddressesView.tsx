@@ -74,7 +74,7 @@ export default function MyAddressesView() {
             setDeliveryAddress(next);
 
             toast.success('Address deleted successfully');
-        } catch (error) {
+        } catch {
             toast.error('Failed to delete address');
         } finally {
             setIsDeleting(false);
@@ -98,51 +98,57 @@ export default function MyAddressesView() {
             setDeliveryAddress(next);
 
             toast.success('Default address updated');
-        } catch (error) {
+        } catch {
             toast.error('Failed to update default address');
         }
     };
 
-    const handleSave = async (addressData: AddressFormSubmitPayload) => {
-        try {
-            const { deliveryAddress, setDeliveryAddress } =
-                useOrderStore.getState();
+    const handleSave = (addressData: AddressFormSubmitPayload) => {
+        // Close modal immediately so user feels instant response; then run save in background.
+        const editingId = editingAddressId;
+        setIsModalOpen(false);
+        setEditingAddressId(null);
 
-            if (editingAddressId) {
-                const updated = await updateAddressMutation.mutateAsync({
-                    id: editingAddressId,
-                    data: toUpdateAddressRequest(addressData),
-                });
+        const runSave = async () => {
+            try {
+                const { deliveryAddress, setDeliveryAddress } =
+                    useOrderStore.getState();
 
-                const next = getNextDeliveryAddressAfterMutation({
-                    event: 'updated',
-                    address: updated,
-                    currentDelivery: deliveryAddress,
-                });
-                setDeliveryAddress(next);
+                if (editingId) {
+                    const updated = await updateAddressMutation.mutateAsync({
+                        id: editingId,
+                        data: toUpdateAddressRequest(addressData),
+                    });
 
-                toast.success('Address updated successfully');
-            } else {
-                const created = await createAddressMutation.mutateAsync(
-                    toCreateAddressRequest(addressData),
-                );
+                    const next = getNextDeliveryAddressAfterMutation({
+                        event: 'updated',
+                        address: updated,
+                        currentDelivery: deliveryAddress,
+                    });
+                    setDeliveryAddress(next);
 
-                const next = getNextDeliveryAddressAfterMutation({
-                    event: 'created',
-                    address: created,
-                    currentDelivery: deliveryAddress,
-                    addressesCountBeforeCreate: addresses.length,
-                });
-                setDeliveryAddress(next);
+                    toast.success('Address updated successfully');
+                } else {
+                    const created = await createAddressMutation.mutateAsync(
+                        toCreateAddressRequest(addressData),
+                    );
 
-                toast.success('Address added successfully');
+                    const next = getNextDeliveryAddressAfterMutation({
+                        event: 'created',
+                        address: created,
+                        currentDelivery: deliveryAddress,
+                        addressesCountBeforeCreate: addresses.length,
+                    });
+                    setDeliveryAddress(next);
+
+                    toast.success('Address added successfully');
+                }
+            } catch (err) {
+                console.error('Save error:', err);
+                toast.error('Failed to save address');
             }
-            setIsModalOpen(false);
-            setEditingAddressId(null);
-        } catch (error) {
-            console.error('Save error:', error);
-            toast.error('Failed to save address');
-        }
+        };
+        void runSave();
     };
 
     const breadcrumbs = [

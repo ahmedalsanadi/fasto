@@ -86,6 +86,8 @@
   },
   "Address": {
     "loading": "جاري التحميل...",
+    "fetchingAddress": "جاري تحميل العنوان...",
+    "locationSelected": "تم تحديد الموقع",
     "addNewAddress": "إضافة عنوان جديد",
     "editAddress": "تعديل العنوان",
     "searchAddress": "البحث عن العنوان",

@@ -83,6 +83,8 @@
   },
   "Address": {
     "loading": "Loading...",
+    "fetchingAddress": "Loading address...",
+    "locationSelected": "Location selected",
     "addNewAddress": "Add New Address",
     "editAddress": "Edit Address",
     "searchAddress": "Search Address",

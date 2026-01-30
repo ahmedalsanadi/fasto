@@ -8,7 +8,7 @@ import React, {
     useCallback,
     useMemo,
 } from 'react';
-import { X, MapPin, Search, Loader2 } from 'lucide-react';
+import { X, MapPin, Search, Loader2, ChevronDown, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { DEFAULT_MAP_CENTER } from '@/lib/branches';
 import { cn } from '@/lib/utils';
@@ -99,7 +99,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
 
     const modalRef = useRef<HTMLDivElement>(null);
 
-    // Populate form logic
+    // Populate form logic. When editing, clear city/district selection first so we don't show
+    // wrong values from a previous form; pendingCity/pendingDistrict will be applied when lists load.
     const populateForm = useCallback(
         (addr: Address | null | undefined) => {
             if (addr) {
@@ -110,6 +111,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
                 setSelectedCountry(
                     addr.country_id ? Number(addr.country_id) : '',
                 );
+                setSelectedCity('');
+                setSelectedDistrict('');
                 setPendingCity(addr.city_id ? Number(addr.city_id) : '');
                 setPendingDistrict(
                     addr.district_id ? Number(addr.district_id) : '',
@@ -224,8 +227,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
         (location: [number, number], formatted: string) => {
             setSelectedLocation(location);
             setFormattedAddress(formatted);
+            toast.success(t('locationSelected'), { duration: 2000 });
         },
-        [],
+        [t],
     );
 
     const isValid =
@@ -246,50 +250,91 @@ const AddressModal: React.FC<AddressModalProps> = ({
             />
             <div
                 ref={modalRef}
-                className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4"
+                className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-5"
                 role="dialog"
                 aria-modal="true">
                 <div
-                    className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col"
+                    className={cn(
+                        'bg-white shadow-2xl w-full overflow-hidden flex flex-col',
+                        'max-h-[88vh] sm:max-h-[90vh]',
+                        'rounded-xl sm:rounded-2xl md:rounded-3xl',
+                        'max-w-6xl',
+                    )}
                     onClick={(e) => e.stopPropagation()}>
                     {/* Header */}
-                    <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-100">
+                    <div className="flex items-center justify-between p-4 sm:p-5 md:p-6 border-b border-gray-100 shrink-0">
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
                             aria-label={t('close')}>
                             <X className="w-5 h-5 text-gray-500" />
                         </button>
-                        <h2 className="text-lg md:text-xl font-bold text-gray-900">
+                        <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">
                             {isFetchingAddress
-                                ? t('loading')
+                                ? t('fetchingAddress')
                                 : addressToUse
                                   ? t('editAddress')
                                   : t('addNewAddress')}
                         </h2>
-                        <div className="w-9" />
+                        <div className="w-9 min-w-[44px]" />
                     </div>
 
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-4 md:p-6">
+                    {/* Content - fixed min-height so modal doesn't jump when switching from skeleton to form */}
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-5 md:p-6 min-h-[40vh] sm:min-h-[480px]">
                         {isFetchingAddress ? (
-                            <div className="flex flex-col items-center justify-center py-20 gap-4">
-                                <Loader2 className="w-10 h-10 text-theme-primary animate-spin" />
-                                <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">
-                                    Fetching Address details...
-                                </p>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 h-full">
+                                <div className="space-y-4 sm:space-y-6">
+                                    <div className="h-10 sm:h-12 rounded-lg sm:rounded-xl bg-gray-100 animate-pulse" />
+                                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                                            <div
+                                                key={i}
+                                                className={cn(
+                                                    'h-12 sm:h-14 rounded-lg sm:rounded-xl bg-gray-100 animate-pulse',
+                                                    i === 1 || i === 2
+                                                        ? 'sm:col-span-2'
+                                                        : '',
+                                                )}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-3 sm:gap-4">
+                                    <div className="h-[220px] sm:h-[320px] lg:min-h-[400px] rounded-lg sm:rounded-2xl bg-gray-100 animate-pulse shrink-0" />
+                                    <div className="h-16 sm:h-20 rounded-lg sm:rounded-xl bg-gray-100/80 animate-pulse" />
+                                </div>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-                                {/* Left: Form */}
-                                <div className="space-y-6">
+                                {/* Left: Form - on mobile appears below map (order-2) */}
+                                <div className="space-y-4 sm:space-y-6 order-2 lg:order-0">
+                                    {/* Selected location feedback - visible so user knows map selection worked */}
+                                    {formattedAddress && (
+                                        <div className="flex items-start gap-3 p-3 sm:p-4 bg-theme-primary/10 rounded-lg sm:rounded-xl border border-theme-primary/20">
+                                            <div className="w-8 h-8 rounded-full bg-theme-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                                                <Check
+                                                    className="w-4 h-4 text-theme-primary"
+                                                    strokeWidth={2.5}
+                                                />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-theme-primary/80 mb-0.5">
+                                                    {t('locationSelected')}
+                                                </p>
+                                                <p className="text-sm text-gray-800 font-medium leading-snug line-clamp-2">
+                                                    {formattedAddress}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Map Search */}
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">
                                             {t('searchAddress')}
                                         </label>
                                         <div className="relative">
-                                            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                                             <input
                                                 type="text"
                                                 value={searchQuery}
@@ -301,7 +346,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
                                                 placeholder={t(
                                                     'searchPlaceholder',
                                                 )}
-                                                className="w-full pr-10 pl-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-theme-primary outline-none transition-all"
+                                                className="w-full pr-10 pl-4 py-3 sm:py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-theme-primary outline-none transition-all text-base"
                                             />
                                         </div>
                                     </div>
@@ -359,88 +404,110 @@ const AddressModal: React.FC<AddressModalProps> = ({
                                             />
                                         </div>
 
-                                        <div>
+                                        <div className="relative">
                                             <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 pl-1">
                                                 {t('country')} *
                                             </label>
-                                            <select
-                                                value={selectedCountry}
-                                                onChange={(e) =>
-                                                    setSelectedCountry(
-                                                        Number(e.target.value),
-                                                    )
-                                                }
-                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 focus:border-theme-primary outline-none font-semibold appearance-none">
-                                                <option value="">
-                                                    {t('selectCountry')}
-                                                </option>
-                                                {countries.map((c) => (
-                                                    <option
-                                                        key={c.id}
-                                                        value={c.id}>
-                                                        {c.name}
+                                            <div className="relative">
+                                                <select
+                                                    value={
+                                                        selectedCountry === ''
+                                                            ? ''
+                                                            : selectedCountry
+                                                    }
+                                                    onChange={(e) => {
+                                                        const v =
+                                                            e.target.value;
+                                                        setSelectedCountry(
+                                                            v ? Number(v) : '',
+                                                        );
+                                                    }}
+                                                    className="w-full ps-4 pe-10 py-3 sm:py-3.5 min-h-[48px] rounded-xl bg-gray-50 border border-gray-200 focus:border-theme-primary focus:ring-2 focus:ring-theme-primary/20 outline-none font-semibold appearance-none cursor-pointer text-base text-gray-900">
+                                                    <option value="">
+                                                        {t('selectCountry')}
                                                     </option>
-                                                ))}
-                                            </select>
+                                                    {countries.map((c) => (
+                                                        <option
+                                                            key={c.id}
+                                                            value={c.id}>
+                                                            {c.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none rtl:rotate-180" />
+                                            </div>
                                         </div>
 
                                         <div className="relative">
                                             <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 pl-1">
                                                 {t('city')} *
                                             </label>
-                                            <select
-                                                value={selectedCity}
-                                                onChange={(e) =>
-                                                    setSelectedCity(
-                                                        Number(e.target.value),
-                                                    )
-                                                }
-                                                disabled={isLoadingCities}
-                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 focus:border-theme-primary outline-none font-semibold appearance-none disabled:opacity-50">
-                                                <option value="">
-                                                    {t('selectCity')}
-                                                </option>
-                                                {cities.map((c) => (
-                                                    <option
-                                                        key={c.id}
-                                                        value={c.id}>
-                                                        {c.name}
+                                            <div className="relative">
+                                                <select
+                                                    value={
+                                                        selectedCity === ''
+                                                            ? ''
+                                                            : selectedCity
+                                                    }
+                                                    onChange={(e) => {
+                                                        const v =
+                                                            e.target.value;
+                                                        setSelectedCity(
+                                                            v ? Number(v) : '',
+                                                        );
+                                                    }}
+                                                    disabled={isLoadingCities}
+                                                    className="w-full ps-4 pe-10 py-3 sm:py-3.5 min-h-[48px] rounded-xl bg-gray-50 border border-gray-200 focus:border-theme-primary focus:ring-2 focus:ring-theme-primary/20 outline-none font-semibold appearance-none disabled:opacity-50 cursor-pointer text-base text-gray-900">
+                                                    <option value="">
+                                                        {t('selectCity')}
                                                     </option>
-                                                ))}
-                                            </select>
-                                            {isLoadingCities && (
-                                                <Loader2 className="absolute left-10 top-[38px] w-4 h-4 animate-spin text-theme-primary" />
-                                            )}
+                                                    {cities.map((c) => (
+                                                        <option
+                                                            key={c.id}
+                                                            value={c.id}>
+                                                            {c.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none rtl:rotate-180" />
+                                                {isLoadingCities && (
+                                                    <Loader2 className="absolute end-10 top-1/2 -translate-y-1/2 w-5 h-5 animate-spin text-theme-primary" />
+                                                )}
+                                            </div>
                                         </div>
 
-                                        <div className="sm:col-span-2">
+                                        <div className="sm:col-span-2 relative">
                                             <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 pl-1">
                                                 {t('district')}
                                             </label>
-                                            <select
-                                                value={selectedDistrict}
-                                                onChange={(e) =>
-                                                    setSelectedDistrict(
-                                                        e.target.value
-                                                            ? Number(
-                                                                  e.target
-                                                                      .value,
-                                                              )
-                                                            : '',
-                                                    )
-                                                }
-                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 focus:border-theme-primary outline-none font-semibold appearance-none">
-                                                <option value="">
-                                                    {t('selectDistrict')}
-                                                </option>
-                                                {districts.map((d) => (
-                                                    <option
-                                                        key={d.id}
-                                                        value={d.id}>
-                                                        {d.name}
+                                            <div className="relative">
+                                                <select
+                                                    value={
+                                                        selectedDistrict === ''
+                                                            ? ''
+                                                            : selectedDistrict
+                                                    }
+                                                    onChange={(e) => {
+                                                        const v =
+                                                            e.target.value;
+                                                        setSelectedDistrict(
+                                                            v ? Number(v) : '',
+                                                        );
+                                                    }}
+                                                    className="w-full ps-4 pe-10 py-3 sm:py-3.5 min-h-[48px] rounded-xl bg-gray-50 border border-gray-200 focus:border-theme-primary focus:ring-2 focus:ring-theme-primary/20 outline-none font-semibold appearance-none cursor-pointer text-base text-gray-900">
+                                                    <option value="">
+                                                        {t('selectDistrict')}
                                                     </option>
-                                                ))}
-                                            </select>
+                                                    {districts.map((d) => (
+                                                        <option
+                                                            key={d.id}
+                                                            value={d.id}>
+                                                            {d.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none rtl:rotate-180" />
+                                            </div>
                                         </div>
 
                                         <div className="sm:col-span-2">
@@ -561,9 +628,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
                                     </div>
                                 </div>
 
-                                {/* Right: Map */}
-                                <div className="flex flex-col gap-4">
-                                    <div className="h-[300px] lg:h-full min-h-[400px] rounded-[32px] overflow-hidden relative border-4 border-gray-50 shadow-inner">
+                                {/* Right: Map - fixed min height so layout doesn't jump */}
+                                <div className="flex flex-col gap-4 order-first lg:order-0">
+                                    <div className="h-[220px] sm:h-[280px] lg:h-full lg:min-h-[400px] rounded-lg sm:rounded-2xl md:rounded-3xl overflow-hidden relative border-2 border-gray-100 shadow-inner">
                                         <AddressMap
                                             center={
                                                 selectedLocation ||
@@ -574,17 +641,17 @@ const AddressModal: React.FC<AddressModalProps> = ({
                                             }
                                             searchQuery={searchQuery}
                                         />
-                                        <div className="absolute top-4 start-4 z-10 bg-white/90 backdrop-blur px-4 py-2 rounded-2xl shadow-sm border border-white flex items-center gap-2">
-                                            <MapPin className="w-4 h-4 text-theme-primary" />
-                                            <span className="text-[10px] font-black uppercase text-gray-500 tracking-tight">
-                                                Live Map Selection
+                                        <div className="absolute top-3 start-3 z-10 bg-white/95 backdrop-blur px-3 py-1.5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2">
+                                            <MapPin className="w-3.5 h-3.5 text-theme-primary" />
+                                            <span className="text-[10px] font-bold uppercase text-gray-500 tracking-tight">
+                                                {t('locationSelected')}
                                             </span>
                                         </div>
                                     </div>
                                     {formattedAddress && (
-                                        <div className="p-4 bg-theme-primary/5 rounded-2xl border border-theme-primary/10 flex items-start gap-3">
-                                            <MapPin className="w-5 h-5 text-theme-primary shrink-0 mt-0.5" />
-                                            <p className="text-sm text-theme-primary/80 font-medium leading-relaxed">
+                                        <div className="p-3 sm:p-4 bg-theme-primary/5 rounded-lg sm:rounded-xl border border-theme-primary/10 flex items-start gap-2 sm:gap-3">
+                                            <Check className="w-4 h-4 sm:w-5 sm:h-5 text-theme-primary shrink-0 mt-0.5" />
+                                            <p className="text-xs sm:text-sm text-theme-primary/90 font-medium leading-snug line-clamp-2">
                                                 {formattedAddress}
                                             </p>
                                         </div>
@@ -594,18 +661,20 @@ const AddressModal: React.FC<AddressModalProps> = ({
                         )}
                     </div>
 
-                    {/* Footer */}
-                    <div className="p-4 md:p-6 border-t border-gray-100 flex items-center justify-end gap-3">
+                    {/* Footer - touch-friendly on mobile */}
+                    <div className="p-4 sm:p-5 md:p-6 border-t border-gray-100 flex items-center justify-end gap-3 shrink-0">
                         <button
+                            type="button"
                             onClick={onClose}
-                            className="px-6 py-3 text-gray-500 font-bold rounded-xl hover:bg-gray-100 transition-colors">
+                            className="min-h-[48px] px-6 py-3 text-gray-500 font-bold rounded-lg sm:rounded-xl hover:bg-gray-100 transition-colors touch-manipulation">
                             {t('cancel')}
                         </button>
                         <button
+                            type="button"
                             onClick={handleSave}
                             disabled={!isValid || isFetchingAddress}
                             className={cn(
-                                'px-10 py-3 font-black rounded-xl transition-all shadow-lg',
+                                'min-h-[48px] px-8 sm:px-10 py-3 font-black rounded-lg sm:rounded-xl transition-all shadow-lg touch-manipulation',
                                 isValid && !isFetchingAddress
                                     ? 'bg-theme-primary text-white hover:brightness-95 shadow-theme-primary/20 active:scale-95'
                                     : 'bg-gray-100 text-gray-400 cursor-not-allowed border-none',
