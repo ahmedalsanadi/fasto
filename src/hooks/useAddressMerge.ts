@@ -1,40 +1,39 @@
 /**
  * Hook for merging guest address with customer account after authentication
  */
-
 import { useCallback } from 'react';
 import { useAddressStore } from '@/store/useAddressStore';
 import { storeService } from '@/services/store-service';
 import { useAuthStore } from '@/store/useAuthStore';
-import { toast } from 'sonner';
 
 export function useAddressMerge() {
     const { addresses, clearAddresses } = useAddressStore();
     const { isAuthenticated } = useAuthStore();
 
     const mergeGuestAddressAfterAuth = useCallback(async () => {
-        if (!isAuthenticated || addresses.length === 0) return;
+        // Only proceed if authenticated and we actually have guest addresses to sync
+        if (!isAuthenticated || addresses.length === 0) {
+            return;
+        }
 
         try {
             console.log(
-                '[useAddressMerge] Syncing guest addresses to account...',
+                `[useAddressMerge] Syncing ${addresses.length} guest address(es) to account...`,
             );
 
-            // We only care about the most relevant address for now, or all of them.
-            // The user said "if he is not auth then he can only store one address"
-            // but the store currently supports multiple. Let's sync all.
-
+            // Map all guest addresses to creation promises
             const syncPromises = addresses.map(async (addr) => {
                 const payload = {
                     label: addr.label || addr.name || 'Home',
                     recipient_name: addr.recipient_name || '',
                     phone: addr.phone || '',
-                    country_id: addr.country_id || 1, // Default to SA if missing
+                    country_id: addr.country_id || 1,
                     city_id: addr.city_id,
                     district_id: addr.district_id ?? undefined,
                     street: addr.street || addr.formatted || '',
-                    building: addr.building || undefined,
-                    unit: addr.unit || undefined,
+                    building:
+                        addr.building || addr.building_number || undefined,
+                    unit: addr.unit || addr.unit_number || undefined,
                     postal_code: addr.postal_code || undefined,
                     additional_number: addr.additional_number || undefined,
                     description: addr.description || addr.notes || '',
@@ -47,20 +46,20 @@ export function useAddressMerge() {
                 return storeService.createAddress(payload);
             });
 
+            // Execute all syncs
             await Promise.all(syncPromises);
 
-            // Clear local storage after successful sync
+            // Successfully merged! Clear local storage.
             clearAddresses();
             console.log(
-                '[useAddressMerge] Guest addresses synced and cleared from local storage.',
+                '[useAddressMerge] Guest addresses successfully merged and cleared.',
             );
         } catch (error) {
             console.error(
                 '[useAddressMerge] Failed to sync guest addresses:',
                 error,
             );
-            // We don't toast error here to not interrupt login flow,
-            // but we keep the addresses in local storage for next attempt.
+            // We keep the addresses in local storage so we can try again on next mount or action
         }
     }, [isAuthenticated, addresses, clearAddresses]);
 

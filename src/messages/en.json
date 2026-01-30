@@ -76,9 +76,13 @@
     "cancel": "Cancel",
     "date": "Date",
     "time": "Time",
-    "selectDateTime": "Select Date & Time"
+    "selectDateTime": "Select Date & Time",
+    "confirmTime": "Confirm Time",
+    "scheduledFor": "Scheduled for",
+    "timeUpdated": "Order time updated successfully"
   },
   "Address": {
+    "loading": "Loading...",
     "addNewAddress": "Add New Address",
     "editAddress": "Edit Address",
     "searchAddress": "Search Address",
@@ -106,7 +110,7 @@
     "selectDistrict": "Select District (Optional)",
     "setDefault": "Set as default address",
     "addNew": "Add New Address",
-    "default":"Default"
+    "default": "Default"
   },
   "Footer": {
     "description": "At our restaurant, we offer a dining experience that combines high quality and distinct taste, using the best fresh ingredients under the supervision of a specialized team to ensure the highest standards of hygiene and quality.",

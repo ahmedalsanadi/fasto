@@ -79,9 +79,13 @@
     "selectDateTime": "حدد التاريخ والوقت",
     "addressSaved": "تم حفظ العنوان بنجاح",
     "addNew": "إضافة جديد",
-    "default":"افتراضي"
+    "confirmTime": "تأكيد الوقت",
+    "scheduledFor": "تمت الجدولة لـ",
+    "timeUpdated": "تم تحديث وقت الطلب بنجاح",
+    "default": "افتراضي"
   },
   "Address": {
+    "loading": "جاري التحميل...",
     "addNewAddress": "إضافة عنوان جديد",
     "editAddress": "تعديل العنوان",
     "searchAddress": "البحث عن العنوان",

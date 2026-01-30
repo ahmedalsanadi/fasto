@@ -22,52 +22,18 @@ export const useAddressStore = create<AddressState>()(
             addresses: [],
             addAddress: (address) =>
                 set((state) => {
-                    let newAddresses = [...state.addresses, address];
-                    // If it's the first address, make it default
-                    if (newAddresses.length === 1) {
-                        newAddresses[0] = {
-                            ...newAddresses[0],
-                            is_default: true,
-                        };
-                    } else if (address.is_default) {
-                        // If new address is marked default, unset others
-                        newAddresses = newAddresses.map((a) => ({
-                            ...a,
-                            is_default: a.id === address.id,
-                        }));
-                    }
-                    return { addresses: newAddresses };
+                    // For guests, we only allow one address.
+                    // If one exists, replace it. Otherwise add.
+                    const newAddress = { ...address, is_default: true };
+                    return { addresses: [newAddress] };
                 }),
             updateAddress: (updatedAddress) =>
                 set((state) => {
-                    let newAddresses = state.addresses.map((addr) =>
-                        addr.id === updatedAddress.id ? updatedAddress : addr,
-                    );
-                    if (updatedAddress.is_default) {
-                        newAddresses = newAddresses.map((a) => ({
-                            ...a,
-                            is_default: a.id === updatedAddress.id,
-                        }));
-                    }
-                    return { addresses: newAddresses };
+                    // For guests, since there's only one, we just replace it.
+                    const newAddress = { ...updatedAddress, is_default: true };
+                    return { addresses: [newAddress] };
                 }),
-            deleteAddress: (id) =>
-                set((state) => {
-                    const newAddresses = state.addresses.filter(
-                        (addr) => addr.id !== id,
-                    );
-                    // If we deleted the default address, make another one default
-                    if (
-                        newAddresses.length > 0 &&
-                        !newAddresses.some((a) => a.is_default)
-                    ) {
-                        newAddresses[0] = {
-                            ...newAddresses[0],
-                            is_default: true,
-                        };
-                    }
-                    return { addresses: newAddresses };
-                }),
+            deleteAddress: (id) => set(() => ({ addresses: [] })), // Deleting the only one clears the list
             setDefaultAddress: (id) =>
                 set((state) => ({
                     addresses: state.addresses.map((addr) => ({

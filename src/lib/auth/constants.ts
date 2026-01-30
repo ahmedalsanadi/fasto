@@ -10,6 +10,10 @@ export const PROTECTED_ROUTES = [
     '/payment',
     '/profile',
     '/checkout',
+    '/my-addresses',
+    '/wallet',
+    '/wallet/transactions',
+    
 ] as const;
 
 /**
