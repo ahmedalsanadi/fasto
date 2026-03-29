@@ -17,6 +17,7 @@ export const PROTECTED_ROUTES = [
  * Protected API endpoints that require customer authentication
  */
 export const PROTECTED_API_ENDPOINTS = [
+    '/broadcasting',
     '/auth/store/me',
     '/auth/store/logout',
     '/store/orders',

@@ -294,8 +294,8 @@ export async function fetchLiberoFull<T>(
             const errorMessage =
                 result?.message ||
                 `Request failed with status ${response.status}`;
-            if (env.isDev && response.status !== 404) {
-                console.error(`[API Error] ${init.method || 'GET'} ${path}:`, {
+            if (env.isDev) {
+                const payload = {
                     status: response.status,
                     statusText: response.statusText,
                     message: errorMessage,
@@ -304,7 +304,11 @@ export async function fetchLiberoFull<T>(
                     resultSuccess: result?.success,
                     resultMessage: result?.message,
                     url: url.toString(),
-                });
+                };
+                console.error(
+                    `[API Error] ${init.method || 'GET'} ${path}`,
+                    JSON.stringify(payload, null, 2),
+                );
             }
             throw new ApiError(
                 response.status,
