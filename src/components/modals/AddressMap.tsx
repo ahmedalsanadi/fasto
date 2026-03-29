@@ -249,7 +249,7 @@ const AddressMap: React.FC<AddressMapProps> = ({
                     </label>
                     <div className="relative">
                         <Search
-                            className="pointer-events-none absolute end-2.5 top-1/2 z-[1] size-4 -translate-y-1/2 text-gray-400 sm:end-3 sm:size-[18px]"
+                            className="pointer-events-none absolute end-2.5 top-1/2 z-1 size-4 -translate-y-1/2 text-gray-400 sm:end-3 sm:size-[18px]"
                             aria-hidden
                         />
                         <input

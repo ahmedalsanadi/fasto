@@ -31,6 +31,13 @@ export const env = {
         (process.env.NEXT_PUBLIC_STORE_HERO_TYPE || '').trim().toLowerCase() ||
         null,
 
+    // Laravel Reverb (Pusher protocol) — browser WebSocket to Reverb host
+    reverbAppKey: process.env.NEXT_PUBLIC_REVERB_APP_KEY || '',
+    reverbHost: process.env.NEXT_PUBLIC_REVERB_HOST || 'ws.libro-shop.com',
+    reverbPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT || '443'),
+    reverbScheme:
+        (process.env.NEXT_PUBLIC_REVERB_SCHEME || 'https').toLowerCase(),
+
     // Environment
     isDev: process.env.NODE_ENV === 'development',
     isProd: process.env.NODE_ENV === 'production',

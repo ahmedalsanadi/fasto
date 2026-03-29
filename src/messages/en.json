@@ -394,12 +394,21 @@
     },
     "courier": {
       "title": "Your order is on its way!",
-      "subtitle": "This order has been handed over to courier Mohamed to deliver it to you.",
+      "subtitle": "Your order is out for delivery with our captain.",
+      "subtitleWithName": "This order is out for delivery with captain {name}.",
       "actions": {
-        "track": "Track Courier",
+        "track": "Track on map",
         "message": "Message Courier",
         "call": "Call Courier"
       }
+    },
+    "tracking": {
+      "live": "Live location connected.",
+      "connecting": "Connecting to live location…",
+      "polling": "Live connection unavailable — refreshing location every 10 seconds.",
+      "waitingDriver": "Waiting for captain location. The map will update when they share their position.",
+      "lastUpdated": "Last updated: {time}",
+      "mapError": "Could not load tracking data. Refresh the page or try again shortly."
     },
     "status": {
       "delivered": "Delivered",

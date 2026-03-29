@@ -8,6 +8,7 @@ import {
     CheckoutInitResponse,
     PaymentStatusResponse,
 } from '@/types/orders/orders.types';
+import type { OrderTrackingData } from '@/types/orders/tracking.types';
 
 export const orderService = {
     /**
@@ -24,6 +25,14 @@ export const orderService = {
      */
     getOrder: (id: number | string) =>
         fetchLibero<Order>(`/store/orders/${id}`, {
+            isProtected: true,
+        }),
+
+    /**
+     * Live tracking payload (captain location, addresses, WebSocket channel metadata).
+     */
+    getOrderTracking: (id: number | string) =>
+        fetchLibero<OrderTrackingData>(`/store/orders/${id}/tracking`, {
             isProtected: true,
         }),
 

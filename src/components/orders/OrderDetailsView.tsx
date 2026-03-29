@@ -14,7 +14,6 @@ import {
     ORDER_STATUS_NUMBER_MAP,
     FulfillmentMethod,
 } from '@/types/orders/orders.types';
-import { OrderCourierCard } from './OrderCourierCard';
 import { OrderStatusTimeline } from './OrderStatusTimeline';
 import { OrderSummaryCard } from './OrderSummaryCard';
 import { OrderProductsCard } from './OrderProductsCard';
@@ -24,18 +23,11 @@ import { cartService } from '@/services/cart-service';
 import { ApiError } from '@/lib/api';
 import { toast } from 'sonner';
 import ConfirmModal from '@/components/modals/ConfirmModal';
-import dynamic from 'next/dynamic';
 import ReviewModal from '@/components/modals/ReviewModal';
 import { reviewService } from '@/services/review-service';
 import { ReviewTypeEnum } from '@/types/reviews';
 import { formatOrderTime } from '@/lib/utils';
-
-const LiveTrackingMap = dynamic(() => import('./LiveTrackingMap'), {
-    ssr: false,
-    loading: () => (
-        <div className="w-full h-80 bg-gray-100 animate-pulse rounded-3xl" />
-    ),
-});
+import { OrderTrackingPanel } from '@/features/tracking/components/OrderTrackingPanel';
 
 interface OrderDetailsViewProps {
     order: Order;
@@ -464,15 +456,10 @@ export default function OrderDetailsView({
                     />
                 </div>
                 <div className="flex flex-col gap-6 col-span-1 md:col-span-5">
-                    {currentStatusKey === 'SHIPPED' && (
-                        <>
-                            <OrderCourierCard />
-                            <LiveTrackingMap
-                                courierCoords={[24.7136, 46.6753]} // Mock Riyadh coords
-                                destinationCoords={[24.7236, 46.6853]}
-                            />
-                        </>
-                    )}
+                    <OrderTrackingPanel
+                        orderId={order.id}
+                        isActive={currentStatusKey === 'SHIPPED'}
+                    />
                     <OrderStatusTimeline timeline={getTimeline()} />
                 </div>
             </div>
