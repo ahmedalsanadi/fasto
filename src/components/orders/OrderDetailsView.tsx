@@ -1,7 +1,7 @@
 // src/app/[locale]/my-orders/utils/components/OrderDetailsView.tsx
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Star, X, RotateCcw, Info, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -14,7 +14,6 @@ import {
     ORDER_STATUS_NUMBER_MAP,
     FulfillmentMethod,
 } from '@/types/orders/orders.types';
-import { OrderCourierCard } from './OrderCourierCard';
 import { OrderStatusTimeline } from './OrderStatusTimeline';
 import { OrderSummaryCard } from './OrderSummaryCard';
 import { OrderProductsCard } from './OrderProductsCard';
@@ -24,23 +23,11 @@ import { cartService } from '@/services/cart-service';
 import { ApiError } from '@/lib/api';
 import { toast } from 'sonner';
 import ConfirmModal from '@/components/modals/ConfirmModal';
-import dynamic from 'next/dynamic';
 import ReviewModal from '@/components/modals/ReviewModal';
 import { reviewService } from '@/services/review-service';
 import { ReviewTypeEnum } from '@/types/reviews';
 import { formatOrderTime } from '@/lib/utils';
-import { useOrderTracking } from '@/features/tracking/hooks/useOrderTracking';
-import { coordsFromTrackingAddress } from '@/features/tracking/lib/tracking-utils';
-
-const TrackingMap = dynamic(
-    () => import('@/features/tracking/components/TrackingMap'),
-    {
-        ssr: false,
-        loading: () => (
-            <div className="w-full h-80 bg-gray-100 animate-pulse rounded-3xl" />
-        ),
-    },
-);
+import { OrderTrackingPanel } from '@/features/tracking/components/OrderTrackingPanel';
 
 interface OrderDetailsViewProps {
     order: Order;
@@ -263,42 +250,6 @@ export default function OrderDetailsView({
 
     const isPickup = order.fulfillment_method === FulfillmentMethod.PICKUP;
 
-    const trackingEnabled = currentStatusKey === 'SHIPPED';
-    const {
-        tracking: trackingPayload,
-        driverLocation,
-        connectionStatus,
-        isLoading: isTrackingLoading,
-        isError: isTrackingError,
-        error: trackingQueryError,
-    } = useOrderTracking(order.id, { enabled: trackingEnabled });
-
-    const trackingBackendRejected =
-        trackingQueryError instanceof ApiError &&
-        trackingQueryError.status === 400;
-
-    const destinationCoords = useMemo((): [number, number] | null => {
-        return coordsFromTrackingAddress(
-            trackingPayload?.delivery_address as
-                | Record<string, unknown>
-                | undefined,
-        );
-    }, [trackingPayload?.delivery_address]);
-
-    const pickupCoords = useMemo((): [number, number] | null => {
-        return coordsFromTrackingAddress(
-            trackingPayload?.pickup_address as
-                | Record<string, unknown>
-                | undefined,
-        );
-    }, [trackingPayload?.pickup_address]);
-
-    const scrollToTrackingMap = useCallback(() => {
-        document
-            .getElementById('order-tracking-map')
-            ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, []);
-
     // Timeline steps: for pickup omit SHIPPED/DELIVERED (استلام من الفرع).
     const timelineProgressSteps: OrderStatus[] = isPickup
         ? [
@@ -505,56 +456,10 @@ export default function OrderDetailsView({
                     />
                 </div>
                 <div className="flex flex-col gap-6 col-span-1 md:col-span-5">
-                    {currentStatusKey === 'SHIPPED' && (
-                        <>
-                            <OrderCourierCard
-                                captainName={trackingPayload?.captain?.name}
-                                captainPhone={trackingPayload?.captain?.phone}
-                                onTrackOnMap={scrollToTrackingMap}
-                            />
-                            {isTrackingLoading ?
-                                <div className="w-full h-64 md:h-80 bg-gray-100 animate-pulse rounded-3xl border-2 border-gray-100" />
-                            : trackingBackendRejected ?
-                                <div className="w-full rounded-3xl border border-gray-200 bg-gray-50 px-4 py-5 text-sm text-gray-600 leading-relaxed">
-                                    {trackingQueryError.message}
-                                </div>
-                            :   <TrackingMap
-                                    driver={driverLocation}
-                                    destination={destinationCoords}
-                                    pickup={pickupCoords ?? undefined}
-                                    emptyLabel={t('tracking.waitingDriver')}
-                                />
-                            }
-                            {!isTrackingLoading &&
-                                isTrackingError &&
-                                !trackingBackendRejected && (
-                                    <p className="text-xs text-amber-700 px-1">
-                                        {t('tracking.mapError')}
-                                    </p>
-                                )}
-                            {!isTrackingLoading && (
-                                <div className="flex flex-col gap-1 text-xs text-gray-500 px-1">
-                                    <span>
-                                        {connectionStatus === 'live' &&
-                                            t('tracking.live')}
-                                        {connectionStatus === 'connecting' &&
-                                            t('tracking.connecting')}
-                                        {connectionStatus === 'polling' &&
-                                            t('tracking.polling')}
-                                    </span>
-                                    {driverLocation?.updatedAt && (
-                                        <span>
-                                            {t('tracking.lastUpdated', {
-                                                time: formatOrderTime(
-                                                    driverLocation.updatedAt,
-                                                ),
-                                            })}
-                                        </span>
-                                    )}
-                                </div>
-                            )}
-                        </>
-                    )}
+                    <OrderTrackingPanel
+                        orderId={order.id}
+                        isActive={currentStatusKey === 'SHIPPED'}
+                    />
                     <OrderStatusTimeline timeline={getTimeline()} />
                 </div>
             </div>

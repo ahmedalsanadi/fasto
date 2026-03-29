@@ -1,7 +1,24 @@
 'use client';
 
+/**
+ * Order tracking orchestration
+ * ---------------------------
+ * - Server state: TanStack Query (`getOrderTracking`) — initial snapshot, polling fallback.
+ * - Ephemeral live position: Zustand (`useTrackingStore`) — WebSocket updates only; not persisted.
+ * - Transport: one Echo instance per subscribed effect; torn down on unmount or when deps change.
+ *
+ * refetchInterval reads connection mode from refs so it never closes over stale React state.
+ */
+
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import {
+    useEffect,
+    useRef,
+    useCallback,
+    useMemo,
+    useState,
+} from 'react';
+import { useShallow } from 'zustand/shallow';
 import { ApiError } from '@/lib/api';
 import { env } from '@/config/env';
 import { getOrderTracking } from '../api/getTracking';
@@ -14,6 +31,14 @@ import {
     parseLocationEventPayload,
 } from '../lib/tracking-utils';
 import type { DriverLocationState } from '../store/trackingStore';
+import {
+    ORDER_STATUS_SHIPPED_VALUE,
+    TRACKING_POLL_INTERVAL_MS,
+    TRACKING_QUERY_KEY_PREFIX,
+    TRACKING_STALE_TIME_MS,
+    TRACKING_WS_CONNECT_TIMEOUT_MS,
+    TRACKING_WS_EVENT_DEFAULT,
+} from '../constants';
 
 type ReverbEcho = ReturnType<typeof createOrderTrackingEcho>;
 
@@ -25,13 +50,21 @@ export type TrackingConnectionStatus =
     | 'polling'
     | 'stopped';
 
-const SHIPPED_STATUS_VALUE = 6;
-
 function useThrottledDriverUpdate(
+    orderId: number,
     setDriverLocation: (loc: DriverLocationState | null) => void,
 ) {
     const rafRef = useRef<number | null>(null);
     const pendingRef = useRef<DriverLocationState | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (rafRef.current != null) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = null;
+            }
+        };
+    }, []);
 
     return useCallback(
         (loc: DriverLocationState) => {
@@ -40,15 +73,15 @@ function useThrottledDriverUpdate(
             rafRef.current = requestAnimationFrame(() => {
                 rafRef.current = null;
                 const next = pendingRef.current;
-                if (next) {
-                    const prev = useTrackingStore.getState().driverLocation;
-                    if (isNewerOrEqual(prev?.updatedAt, next.updatedAt)) {
-                        setDriverLocation(next);
-                    }
+                if (!next) return;
+                if (useTrackingStore.getState().activeOrderId !== orderId) return;
+                const prev = useTrackingStore.getState().driverLocation;
+                if (isNewerOrEqual(prev?.updatedAt, next.updatedAt)) {
+                    setDriverLocation(next);
                 }
             });
         },
-        [setDriverLocation],
+        [orderId, setDriverLocation],
     );
 }
 
@@ -67,27 +100,55 @@ export function useOrderTracking(
     options?: { enabled?: boolean },
 ): UseOrderTrackingResult {
     const enabled = options?.enabled ?? true;
-    const setSession = useTrackingStore((s) => s.setSession);
-    const clearSession = useTrackingStore((s) => s.clearSession);
-    const setDriverLocation = useTrackingStore((s) => s.setDriverLocation);
-    const driverLocation = useTrackingStore((s) =>
-        s.activeOrderId === orderId ? s.driverLocation : null,
+
+    const {
+        activeOrderId,
+        driverLocation: storeDriverLocation,
+        setSession,
+        clearSession,
+        setDriverLocation,
+    } = useTrackingStore(
+        useShallow((s) => ({
+            activeOrderId: s.activeOrderId,
+            driverLocation: s.driverLocation,
+            setSession: s.setSession,
+            clearSession: s.clearSession,
+            setDriverLocation: s.setDriverLocation,
+        })),
     );
+
+    const driverLocation =
+        activeOrderId === orderId ? storeDriverLocation : null;
 
     const [pusherMode, setPusherMode] = useState<
         'off' | 'trying' | 'live' | 'failed'
     >('off');
+
+    const pusherModeRef = useRef(pusherMode);
+    const canUseWsRef = useRef(false);
+
+    useEffect(() => {
+        pusherModeRef.current = pusherMode;
+    }, [pusherMode]);
 
     const echoRef = useRef<ReverbEcho | null>(null);
     const connectFailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
         null,
     );
     const trackingDataRef = useRef<OrderTrackingData | undefined>(undefined);
-    const applyLiveLocation = useThrottledDriverUpdate(setDriverLocation);
+
+    const applyLiveLocation = useThrottledDriverUpdate(
+        orderId,
+        setDriverLocation,
+    );
 
     const canUseWs = Boolean(
         env.reverbAppKey && env.reverbHost && typeof window !== 'undefined',
     );
+
+    useEffect(() => {
+        canUseWsRef.current = canUseWs;
+    }, [canUseWs]);
 
     const queryEnabled = enabled && Number.isFinite(orderId) && orderId > 0;
 
@@ -98,9 +159,9 @@ export function useOrderTracking(
         error,
         refetch,
     } = useQuery({
-        queryKey: ['tracking', orderId],
+        queryKey: [TRACKING_QUERY_KEY_PREFIX, orderId],
         queryFn: () => getOrderTracking(orderId),
-        staleTime: 30_000,
+        staleTime: TRACKING_STALE_TIME_MS,
         enabled: queryEnabled,
         retry: (failureCount, err) => {
             if (err instanceof ApiError && err.status === 400) return false;
@@ -108,21 +169,24 @@ export function useOrderTracking(
         },
         refetchInterval: (q) => {
             const d = q.state.data as OrderTrackingData | undefined;
-            const shipped = d?.order_status?.value === SHIPPED_STATUS_VALUE;
+            const shipped =
+                d?.order_status?.value === ORDER_STATUS_SHIPPED_VALUE;
             if (!d || !shipped) return false;
-            if (!canUseWs) return 10_000;
-            if (pusherMode === 'live') return false;
-            if (pusherMode === 'failed') return 10_000;
+            if (!canUseWsRef.current) return TRACKING_POLL_INTERVAL_MS;
+            const mode = pusherModeRef.current;
+            if (mode === 'live') return false;
+            if (mode === 'failed') return TRACKING_POLL_INTERVAL_MS;
             return false;
         },
     });
 
-    const isShipped = data?.order_status?.value === SHIPPED_STATUS_VALUE;
+    const isShipped =
+        data?.order_status?.value === ORDER_STATUS_SHIPPED_VALUE;
 
     const wsEventKey =
-        data && isShipped
-            ? (data.websocket?.event ?? 'captain.location.updated')
-            : null;
+        data && isShipped ?
+            (data.websocket?.event ?? TRACKING_WS_EVENT_DEFAULT)
+        :   null;
 
     const connectionStatus = useMemo((): TrackingConnectionStatus => {
         if (!queryEnabled) return 'idle';
@@ -187,7 +251,7 @@ export function useOrderTracking(
         setPusherMode('trying');
         let cancelled = false;
         const eventName =
-            snapshot.websocket?.event || 'captain.location.updated';
+            snapshot.websocket?.event || TRACKING_WS_EVENT_DEFAULT;
         const channelName = `order.${orderId}.tracking`;
 
         let echo: ReverbEcho;
@@ -242,7 +306,7 @@ export function useOrderTracking(
             if (state !== 'connected') {
                 setPusherMode('failed');
             }
-        }, 12_000);
+        }, TRACKING_WS_CONNECT_TIMEOUT_MS);
 
         const channel = echo.private(channelName);
 
